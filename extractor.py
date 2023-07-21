@@ -14,14 +14,14 @@ def is_turkish_content(text):
         bool: True if the text is in Turkish, False otherwise.
     """
     try:
-        detected_language = detect(text) # lower() yaparsak basliklara isimlere turkce diyor, yoksa onlardan kurtulabiliyoruz. 
+        detected_language = detect(text) # lower() yaparsak basliklara isimlere turkce diyor, yoksa onlardan kurtulabiliyoruz.
         if detected_language == 'tr':
             return True
         else:
             return False
     except:
         return False
-    
+
 def remove_punctuation(text):
     """Removes punctuation marks from a given text."""
     punctuation = "!\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"
@@ -79,7 +79,6 @@ def count_occurrence(lines, target_line):
     """
     return lines.count(target_line)
 
-
 def find_caption_type(line):
     """
     Determines the type of a caption line (e.g., table, figure, etc.).
@@ -91,7 +90,6 @@ def find_caption_type(line):
         if re.match(fr"^{item}\s\d+[\.\:\-]", line): # \s\d+[\.\:]\s.+?\s\d+
             return item
     return 'Yok'
-
 
 def capture_number_at_beginning(text):
     """
@@ -105,7 +103,7 @@ def capture_number_at_beginning(text):
         return int(match.group(1).strip())
     else:
         return None
-    
+
 def capture_number_at_end(text):
     """
     Captures the number at the end of a text.
@@ -152,9 +150,8 @@ def compute_affiliation_ratio(line):
     """
     indicators = ['Prof', 'Doç', 'Yrd', 'Arş', 'Dr', 'Öğr', 'Öğr', 'Üniversite', 'Fakülte', 'MYO']
     cities = ['Ankara', 'İzmir', 'İstanbul', 'Muğla', 'Samsun', 'Bursa']
-    
-    return len([indicator for indicator in indicators if indicator in line] + [i for i in cities if i in line]) / (len(indicators)+1)
 
+    return len([indicator for indicator in indicators if indicator in line] + [i for i in cities if i in line]) / (len(indicators)+1)
 
 def capture_citations(text):
     """
@@ -165,7 +162,6 @@ def capture_citations(text):
     """
     references = re.findall(r'^.*?((?:[A-ZÄ°Ã‡Ã–ÅžÄ°Ä°Ãœa-zÄ±Ã§Ã¶ÅŸÃ¼Å¸\s\d.,:-]+[\s,]){2,}.*\d{4}\.).*$', text, re.MULTILINE)
     return len(references) > 0
-
 
 def discard_flags(text):
     """
@@ -193,7 +189,6 @@ def check_volume_number_format(text):
     tr_match = re.search(tr_pattern, text)
     return match is not None or tr_match is not None
 
-
 def parse_pdf(path):
     """
     Parses a PDF file and extracts the content as a list of stripped lines.
@@ -205,8 +200,7 @@ def parse_pdf(path):
         list: A list of stripped lines from the PDF content.
     """
     parsed = parser.from_file(path)
-    return [l.strip() for l in parsed["content"].split('\n') if l.strip() != ''] 
-
+    return [l.strip() for l in parsed["content"].split('\n') if l.strip() != '']
 
 def compute_line_statistics(lines):
     """
@@ -238,11 +232,10 @@ def compute_line_statistics(lines):
         stats['initial_number'] = capture_number_at_beginning(line)
         stats['final_number'] = capture_number_at_end(line)
         # TODO: capture_citations does not work properly and take too much time.
-        # stats['has_citation'] = capture_citations(line) 
+        # stats['has_citation'] = capture_citations(line)
 
         statistics.append(stats)
     return statistics
-
 
 def correct_false_values(df, column_name):
     """
@@ -281,11 +274,11 @@ def find_bibliography(df):
     assert len(row_indices) == 1
     df.loc[:row_indices[0], 'is_bibliography'] = False
     df.loc[row_indices[0]:, 'is_bibliography'] = True
-    return df    
+    return df
 
 def mark_footnotes(df):
     # TODO: Handle missing footnotes 16 17 -1 19: tad_11493_136941, index: 271
-    # TODO: Handle footnotes separated by 2 or 3 lines 16 17 -1 -1 18:: ortetut_50685_660118 
+    # TODO: Handle footnotes separated by 2 or 3 lines 16 17 -1 -1 18:: ortetut_50685_660118
     """
     Marks the rows in the DataFrame that are footnotes based on consecutive numbering.
 
@@ -311,7 +304,7 @@ def mark_footnotes(df):
             if i != last_index + 1 and df['initial_number'].iloc[i] != -1:
                 last_number = df['initial_number'].iloc[i]
                 last_index = i
-            
+
     return df
 
 def convert_pdf_to_text(file):
@@ -324,33 +317,33 @@ def convert_pdf_to_text(file):
     Args:
         file (str): The path to the PDF file.
     """
-    try: 
+    try:
         lines = [l.strip() for l in parser.from_file(file)['content'].split('\n') if l.strip() != '']
-    except: 
+    except:
         print('Error during OCR ', file)
         return
     df = pd.DataFrame(compute_line_statistics(lines))
     df['final_number'] = df['final_number'].fillna(-1)
 
-    # TODO: What if we perform this correction after dropping based on other conditions? 
+    # TODO: What if we perform this correction after dropping based on other conditions?
     df['is_turkish_corrected'] = df['is_turkish']
-    df = correct_false_values(df, 'is_turkish') 
-    
+    df = correct_false_values(df, 'is_turkish')
+
     df = mark_footnotes(df)
-    
+
     try:
-        # Bibliyograph is not presented in all pdfs.  
+        # Bibliyograph is not presented in all pdfs.
         df = find_bibliography(df)
-    except: 
+    except:
         df['is_bibliography'] = False
 
     index = df[(df['is_turkish_corrected'] == False)
                 | ((df['digit_ratio'] >= 0.2) & (df['average_token_length'] < 4)) # usually table values
                 | (df['digit_ratio'] == 1)                                        # page numbers
                 | (df['has_email'])
-                | (df['caption_type'] != 'Yok') 
+                | (df['caption_type'] != 'Yok')
                 | (df['is_footnote'])
-                | (df['citation_format']) 
+                | (df['citation_format'])
                 | (df['discard_flag'])
                 | (df['affiliation_count'] > 0.15)
                 | (df['occurrence'] > 2)
@@ -363,7 +356,6 @@ def convert_pdf_to_text(file):
     filtered_df = df.drop(index)
     with open(file.replace('pdf', 'txt'), 'w', encoding='utf-8') as f:
         f.write(' '.join(filtered_df['line'].tolist()))
-
 
 files = Path('../../data/deripark-sample-g')
 for f in files.iterdir():
