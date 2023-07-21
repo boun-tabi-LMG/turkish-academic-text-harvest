@@ -1,10 +1,9 @@
 import re
 import pandas as pd
-import numpy as np
-import tika
 from tika import parser
 from langdetect import detect
 from pathlib import Path
+import argparse
 
 def is_turkish_content(text):
     """
@@ -231,8 +230,7 @@ def compute_line_statistics(lines):
         stats['discard_flag'] = discard_flags(line)
         stats['initial_number'] = capture_number_at_beginning(line)
         stats['final_number'] = capture_number_at_end(line)
-        # TODO: capture_citations does not work properly and take too much time.
-        # stats['has_citation'] = capture_citations(line)
+        stats['has_citation'] = capture_citations(line)
 
         statistics.append(stats)
     return statistics
@@ -357,7 +355,11 @@ def convert_pdf_to_text(file):
     with open(file.replace('pdf', 'txt'), 'w', encoding='utf-8') as f:
         f.write(' '.join(filtered_df['line'].tolist()))
 
-files = Path('../../data/deripark-sample-g')
+arg_parser = argparse.ArgumentParser(description='Extracts text from PDF files.')
+arg_parser.add_argument('-p', '--path', type=str, help='The path to the PDF folder.', required=True)
+args = arg_parser.parse_args()
+
+files = Path(args.path)
 for f in files.iterdir():
     if f.name.endswith('.pdf'):
         convert_pdf_to_text(str(f))
