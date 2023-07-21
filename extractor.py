@@ -160,7 +160,7 @@ def capture_citations(text):
     Returns:
         bool: True if citations are found, False otherwise.
     """
-    references = re.findall(r'^.*?((?:[A-ZÄ°Ã‡Ã–ÅžÄ°Ä°Ãœa-zÄ±Ã§Ã¶ÅŸÃ¼Å¸\s\d.,:-]+[\s,]){2,}.*\d{4}\.).*$', text, re.MULTILINE)
+    references = re.findall('\([A-Za-z–§¶\s\d.\',:-]+[\s,]\d{4}\)', text, re.MULTILINE)
     return len(references) > 0
 
 def discard_flags(text):
@@ -318,9 +318,9 @@ def convert_pdf_to_text(file):
         file (str): The path to the PDF file.
     """
     try:
-        lines = [l.strip() for l in parser.from_file(file)['content'].split('\n') if l.strip() != '']
+        lines = [l.strip() for l in parser.from_file(file)['content'].split('\n') if l.strip()]
     except:
-        print('Error during OCR ', file)
+        print('Error during OCR:', file)
         return
     df = pd.DataFrame(compute_line_statistics(lines))
     df['final_number'] = df['final_number'].fillna(-1)
