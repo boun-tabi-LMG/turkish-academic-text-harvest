@@ -159,8 +159,10 @@ def capture_citations(text):
     Returns:
         bool: True if citations are found, False otherwise.
     """
-    references = re.findall('\([A-Za-z–§¶\s\d.\',:-]+[\s,]\d{4}\)', text, re.MULTILINE)
-    return len(references) > 0
+    references = re.search('\([A-Za-z–§¶\s\d.\',:-]+[\s,]\d{4}\)', text, re.MULTILINE)
+    if references:
+        return True
+    return False
 
 def discard_flags(text):
     """
