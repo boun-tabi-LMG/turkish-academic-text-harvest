@@ -381,8 +381,7 @@ arg_parser = argparse.ArgumentParser(description='Extracts text from PDF files.'
 arg_parser.add_argument('-p', '--path', type=str, help='The path to the PDF folder.', required=True)
 args = arg_parser.parse_args()
 
-# files = Path(args.path)
-# for f in files.iterdir():
-#     if f.name.endswith('.pdf'):
-#         convert_pdf_to_text(str(f))
-convert_pdf_to_text(args.path)
+files = Path(args.path)
+for f in files.iterdir():
+    if f.name.endswith('.pdf'):
+        convert_pdf_to_text(str(f))
