@@ -167,21 +167,6 @@ def capture_citations(text):
         return True
     return False
 
-def split_page_number(text):
-    '''
-    Splits page number from concatenated metadata.
-
-    Returns:
-        str: Page number.
-    '''
-    # may use capture_number_at_start/end but strip needed
-    text = text.strip()
-    pattern = "(^(\d+).*$|^.*(\d+)$)"
-    match = re.search(pattern, text)
-    if match:
-        return match.group(1)
-    return None
-
 def discard_flags(text):
     """
     Checks if a text contains any citations using a regular expression pattern.
