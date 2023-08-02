@@ -298,8 +298,6 @@ def find_bibliography(df):
     return df
 
 def mark_footnotes(df):
-    # TODO: Handle missing footnotes 16 17 -1 19: tad_11493_136941, index: 271
-    # TODO: Handle footnotes separated by 2 or 3 lines 16 17 -1 -1 18:: ortetut_50685_660118
     """
     Marks the rows in the DataFrame that are footnotes based on consecutive numbering.
 
@@ -312,18 +310,19 @@ def mark_footnotes(df):
     df['initial_number'] = df['initial_number'].fillna(-1)
 
     for i in range(len(df)):
+        current_number = df['initial_number'].iloc[i]
+        gap = i - last_index
 
-        if (df['initial_number'].iloc[i] == last_number + 1) and (i in [last_index + 1, last_index + 2]):
-            df.loc[last_index, 'is_footnote'] = True
-            df.loc[i, 'is_footnote'] = True
-            if i != last_index + 1:
-                df.loc[i-1, 'is_footnote'] = True
+        if (last_number - current_number <= 2) and gap <= 4:
+            for j in range(last_index, i+1):
+                df.loc[j, 'is_footnote'] = True
 
-            last_number = df['initial_number'].iloc[i]
+            last_number = current_number
             last_index = i
+
         else:
-            if i != last_index + 1 and df['initial_number'].iloc[i] != -1:
-                last_number = df['initial_number'].iloc[i]
+            if i != last_index + 1 and current_number != -1:
+                last_number = current_number
                 last_index = i
 
     return df
