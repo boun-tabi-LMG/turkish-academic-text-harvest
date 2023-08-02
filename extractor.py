@@ -76,7 +76,10 @@ def count_occurrence(lines, target_line):
     Returns:
         int: The number of occurrences.
     """
-    return lines.count(target_line)
+    strip_t = target_line.strip()
+    number_removed = re.sub(r'(^(\d+)|(\d+)$)', '', strip_t)
+    count = max(lines.count(target_line), lines.count(number_removed))
+    return count
 
 def find_caption_type(line):
     """
@@ -163,6 +166,21 @@ def capture_citations(text):
     if references:
         return True
     return False
+
+def split_page_number(text):
+    '''
+    Splits page number from concatenated metadata.
+
+    Returns:
+        str: Page number.
+    '''
+    # may use capture_number_at_start/end but strip needed
+    text = text.strip()
+    pattern = "(^(\d+).*$|^.*(\d+)$)"
+    match = re.search(pattern, text)
+    if match:
+        return match.group(1)
+    return None
 
 def discard_flags(text):
     """
@@ -381,8 +399,7 @@ arg_parser = argparse.ArgumentParser(description='Extracts text from PDF files.'
 arg_parser.add_argument('-p', '--path', type=str, help='The path to the PDF folder.', required=True)
 args = arg_parser.parse_args()
 
-# files = Path(args.path)
-# for f in files.iterdir():
-#     if f.name.endswith('.pdf'):
-#         convert_pdf_to_text(str(f))
-convert_pdf_to_text(args.path)
+files = Path(args.path)
+for f in files.iterdir():
+    if f.name.endswith('.pdf'):
+        convert_pdf_to_text(str(f))
