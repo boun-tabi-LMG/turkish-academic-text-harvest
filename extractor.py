@@ -159,7 +159,7 @@ def capture_citations(text):
     Returns:
         bool: True if citations are found, False otherwise.
     """
-    references = re.search('\([A-Za-z–§¶\s\d.\',:-]+[\s,]\d{4}\)', text, re.MULTILINE)
+    references = re.search('\(([A-Za-z–§¶\s\d\',:]+[\s,]\d{4}|\d+)\)', text, re.MULTILINE)
     if references:
         return True
     return False
@@ -382,7 +382,8 @@ arg_parser = argparse.ArgumentParser(description='Extracts text from PDF files.'
 arg_parser.add_argument('-p', '--path', type=str, help='The path to the PDF folder.', required=True)
 args = arg_parser.parse_args()
 
-files = Path(args.path)
-for f in files.iterdir():
-    if f.name.endswith('.pdf'):
-        convert_pdf_to_text(str(f))
+# files = Path(args.path)
+# for f in files.iterdir():
+#     if f.name.endswith('.pdf'):
+#         convert_pdf_to_text(str(f))
+convert_pdf_to_text(args.path)
