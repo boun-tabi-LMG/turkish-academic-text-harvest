@@ -263,7 +263,7 @@ def find_bibliography(df):
     Returns:
         pd.DataFrame: The updated DataFrame with a column indicating the bibliography rows.
     """
-    keywords = ['Bibliyoğrafya', 'Bibliyografya', 'Bibliyog', 'Kaynakça', 'Kaynaklar']
+    keywords = ['Bibliyoğrafya', 'Bibliyografya', 'Bibliyog', 'Kaynakça', 'Kaynaklar', 'Kaynaklar/References']
 
     # Search for the keywords in the 'text_column'
     mask = df['line'].str.contains(r'^(' + '|'.join(keywords) + r')', case=False, na=False, regex=True)
@@ -271,9 +271,30 @@ def find_bibliography(df):
     # Get the index of the row(s) containing the keywords
     row_indices = df[mask].index
     print(row_indices)
-    assert len(row_indices) == 1
-    df.loc[:row_indices[0], 'is_bibliography'] = False
-    df.loc[row_indices[0]:, 'is_bibliography'] = True
+
+    # If only one keyword is found
+    if len(row_indices) == 1:
+        bibliography_row_index = row_indices[0]
+    # If more than one keyword is found, look for exact match or space after keyword, select the first match
+    elif len(row_indices) > 1:
+        matchFlag = False
+        for i, row in df[mask].iterrows():
+            match = re.search(r'^(' + '|'.join(keywords) + r')\b', row["line"], flags=re.IGNORECASE)
+            if match:
+                matchFlag = True
+                bibliography_row_index = i
+                break
+        # If no match is found, take the last row that contains a keyword
+        if not matchFlag:
+            bibliography_row_index = row_indices[-1]
+    # If no keyword is found, bibliography doesn't exist
+    else:
+        assert len(row_indices) == 1
+
+    print(bibliography_row_index, df.loc[bibliography_row_index, 'line'])
+
+    df.loc[:bibliography_row_index, 'is_bibliography'] = False
+    df.loc[bibliography_row_index:, 'is_bibliography'] = True
     return df
 
 def mark_footnotes(df):
