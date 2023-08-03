@@ -3,6 +3,7 @@ import pandas as pd
 from tika import parser
 from langdetect import detect
 from pathlib import Path
+from multiprocessing import Pool
 import argparse
 
 def is_turkish_content(text):
@@ -379,10 +380,10 @@ def convert_pdf_to_text(file):
 
 arg_parser = argparse.ArgumentParser(description='Extracts text from PDF files.')
 arg_parser.add_argument('-p', '--path', type=str, help='The path to the PDF folder.', required=True)
+arg_parser.add_argument('-n', '--num_threads', type=int, help='The number of threads to use.', default=4)
 args = arg_parser.parse_args()
 
-# files = Path(args.path)
-# for f in files.iterdir():
-#     if f.name.endswith('.pdf'):
-#         convert_pdf_to_text(str(f))
-convert_pdf_to_text(args.path)
+input_dir = Path(args.path)
+
+with Pool(args.num_threads) as pool:
+    pool.map(convert_pdf_to_text, [str(f) for f in input_dir.iterdir() if f.name.endswith('.pdf')])
