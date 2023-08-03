@@ -77,7 +77,10 @@ def count_occurrence(lines, target_line):
     Returns:
         int: The number of occurrences.
     """
-    return lines.count(target_line)
+    strip_t = target_line.strip()
+    number_removed = re.sub(r'(^(\d+)|(\d+)$)', '', strip_t)
+    count = max(lines.count(target_line), lines.count(number_removed))
+    return count
 
 def find_caption_type(line):
     """
