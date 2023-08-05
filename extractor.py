@@ -60,6 +60,8 @@ def capture_numbers(line):
     numbers = re.findall(r'\b\d+(?:\.\d+)?\b', line)
     return numbers
 
+email_pattern = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b')
+
 def check_email(line):
     """
     Checks if a line of text contains an email address.
@@ -67,8 +69,8 @@ def check_email(line):
     Returns:
         bool: True if an email address is found, False otherwise.
     """
-    email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-    return bool(re.search(email_regex, line))
+    email_search = email_pattern.search(line)
+    return bool(email_search)
 
 def count_occurrence(lines, target_line):
     """
@@ -259,6 +261,9 @@ def correct_false_values(df, column_name):
 
     return df
 
+bibliography_keywords = ['Bibliyoğrafya', 'Bibliyografya', 'Bibliyog', 'Kaynakça', 'Kaynaklar', 'Kaynaklar/References']
+bibliography_pattern = re.compile(r'^(' + '|'.join(bibliography_keywords) + r')\b', re.IGNORECASE)
+
 def find_bibliography(df):
     # TODO: Handle the case where keywords are detected more than once.
     """
@@ -267,14 +272,12 @@ def find_bibliography(df):
     Returns:
         pd.DataFrame: The updated DataFrame with a column indicating the bibliography rows.
     """
-    keywords = ['Bibliyoğrafya', 'Bibliyografya', 'Bibliyog', 'Kaynakça', 'Kaynaklar', 'Kaynaklar/References']
 
     # Search for the keywords in the 'text_column'
-    mask = df['line'].str.contains(r'^(' + '|'.join(keywords) + r')', case=False, na=False, regex=True)
+    mask = df['line'].str.contains(r'^(' + '|'.join(bibliography_keywords) + r')', case=False, na=False, regex=True)
 
     # Get the index of the row(s) containing the keywords
     row_indices = df[mask].index
-    print(row_indices)
 
     # If only one keyword is found
     if len(row_indices) == 1:
@@ -283,7 +286,7 @@ def find_bibliography(df):
     elif len(row_indices) > 1:
         matchFlag = False
         for i, row in df[mask].iterrows():
-            match = re.search(r'^(' + '|'.join(keywords) + r')\b', row["line"], flags=re.IGNORECASE)
+            match = bibliography_pattern.match(row["line"])
             if match:
                 matchFlag = True
                 bibliography_row_index = i
@@ -294,8 +297,6 @@ def find_bibliography(df):
     # If no keyword is found, bibliography doesn't exist
     else:
         assert len(row_indices) == 1
-
-    print(bibliography_row_index, df.loc[bibliography_row_index, 'line'])
 
     df.loc[:bibliography_row_index, 'is_bibliography'] = False
     df.loc[bibliography_row_index:, 'is_bibliography'] = True
@@ -356,7 +357,7 @@ def convert_pdf_to_text(file):
     df = mark_footnotes(df)
 
     try:
-        # Bibliyograph is not presented in all pdfs.
+        # Bibliography is not presented in all pdfs.
         df = find_bibliography(df)
     except:
         df['is_bibliography'] = False
@@ -381,12 +382,17 @@ def convert_pdf_to_text(file):
     with open(file.replace('pdf', 'txt'), 'w', encoding='utf-8') as f:
         f.write(' '.join(filtered_df['line'].tolist()))
 
-arg_parser = argparse.ArgumentParser(description='Extracts text from PDF files.')
-arg_parser.add_argument('-p', '--path', type=str, help='The path to the PDF folder.', required=True)
-arg_parser.add_argument('-n', '--num_threads', type=int, help='The number of threads to use.', default=4)
-args = arg_parser.parse_args()
+def main():
+    arg_parser = argparse.ArgumentParser(description='Extracts text from PDF files.')
+    arg_parser.add_argument('-p', '--path', type=str, help='The path to the PDF folder.', required=True)
+    arg_parser.add_argument('-n', '--num_threads', type=int, help='The number of threads to use.', default=4)
+    args = arg_parser.parse_args()
 
-input_dir = Path(args.path)
+    input_dir = Path(args.path)
+    input_files = [str(f) for f in input_dir.iterdir() if f.name.endswith('.pdf')]
 
-with Pool(args.num_threads) as pool:
-    pool.map(convert_pdf_to_text, [str(f) for f in input_dir.iterdir() if f.name.endswith('.pdf')])
+    with Pool(args.num_threads) as pool:
+        pool.map(convert_pdf_to_text, input_files)
+
+if __name__ == '__main__':
+    main()
