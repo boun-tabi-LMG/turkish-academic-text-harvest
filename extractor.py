@@ -84,6 +84,9 @@ def count_occurrence(lines, target_line):
     count = max(lines.count(target_line), lines.count(number_removed))
     return count
 
+caption_items = ['Tablo', 'Şekil', 'Fotoğraf', 'Figür', 'Resim', 'Plan', 'Nota', 'Çizelge', 'Grafik', 'Ek']
+caption_pattern = re.compile(fr"^({'|'.join(caption_items)})\s\d+[\.\:\-]")
+
 def find_caption_type(line):
     """
     Determines the type of a caption line (e.g., table, figure, etc.).
@@ -91,10 +94,13 @@ def find_caption_type(line):
     Returns:
         str: The caption type if matched, 'Yok' (meaning 'None') otherwise.
     """
-    for item in ['Tablo', 'Şekil', 'Fotoğraf', 'Figür', 'Resim', 'Plan', 'Nota', 'Çizelge', 'Grafik', 'Ek']:
-        if re.match(fr"^{item}\s\d+[\.\:\-]", line): # \s\d+[\.\:]\s.+?\s\d+
-            return item
+    match = caption_pattern.search(line)
+    if match:
+        return match.group(1)
     return 'Yok'
+
+number_at_beginning_pattern = re.compile(r'^(\d+)')
+number_at_end_pattern = re.compile(r'(\d+)$')
 
 def capture_number_at_beginning(text):
     """
@@ -103,7 +109,7 @@ def capture_number_at_beginning(text):
     Returns:
         int: The captured number, or None if no number is found.
     """
-    match = re.match(r'^(\d+)', text)
+    match = number_at_beginning_pattern.match(text.strip())
     if match:
         return int(match.group(1).strip())
     else:
@@ -116,11 +122,10 @@ def capture_number_at_end(text):
     Returns:
         int: The captured number, or None if no number is found.
     """
-    match = re.match(r'^(\d+)', text.strip()[::-1])
+    match = number_at_end_pattern.search(text.strip()[::-1])
     if match:
         return int(match.group(1).strip()[::-1])
-    else:
-        return None
+    return None
 
 def capture_dates(line):
     """
@@ -158,6 +163,8 @@ def compute_affiliation_ratio(line):
 
     return len([indicator for indicator in indicators if indicator in line] + [i for i in cities if i in line]) / (len(indicators)+1)
 
+citation_pattern = re.compile('\(([A-Za-z–§¶\s\d\',:]+[\s,]\d{4}|\d+)\)', re.MULTILINE)
+
 def capture_citations(text):
     """
     Checks if a text contains any citations using a regular expression pattern.
@@ -165,10 +172,8 @@ def capture_citations(text):
     Returns:
         bool: True if citations are found, False otherwise.
     """
-    references = re.search('\(([A-Za-z–§¶\s\d\',:]+[\s,]\d{4}|\d+)\)', text, re.MULTILINE)
-    if references:
-        return True
-    return False
+    references = citation_pattern.search(text)
+    return bool(references)
 
 def discard_flags(text):
     """
@@ -182,6 +187,9 @@ def discard_flags(text):
         return True
     return False
 
+volume_pattern = re.compile(r"vol\s*\d+\s*.+no\s\d+\s*.+p")
+volume_tr_pattern = re.compile(r"cilt\s*\d+\s*.+sayı\s\d+\s*.+s")
+
 def check_volume_number_format(text):
     """
     Checks if a text follows a specific volume and number format.
@@ -189,12 +197,10 @@ def check_volume_number_format(text):
     Returns:
         bool: True if the format is matched, False otherwise.
     """
-    pattern = r"vol\s*\d+\s*.+no\s\d+\s*.+p"
-    tr_pattern = r"cilt\s*\d+\s*.+sayı\s\d+\s*.+s"
 
-    match = re.search(pattern, text)
-    tr_match = re.search(tr_pattern, text)
-    return match is not None or tr_match is not None
+    match = volume_pattern.search(text)
+    tr_match = volume_tr_pattern.search(text)
+    return bool(match) or bool(tr_match)
 
 def parse_pdf(path):
     """
