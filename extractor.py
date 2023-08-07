@@ -214,6 +214,32 @@ def parse_pdf(path):
     parsed = parser.from_file(path)
     return [l.strip() for l in parsed["content"].split('\n') if l.strip() != '']
 
+index_str_l = ['tablo', 'şekil', 'grafik', 'çizelge', 'table', 'figure', 'graph', 'chart']
+index_heading_pattern = re.compile(r'dizini?$', re.IGNORECASE)
+index_start_pattern = re.compile(r'^(' + '|'.join(index_str_l) + r')\s*\d+', re.IGNORECASE)
+index_end_pattern = re.compile(r'\d+$', re.IGNORECASE)
+
+def check_index(lines):
+    """
+    Checks if a line is part of an index.
+
+    Returns:
+        bool: True if the line is part of an index, False otherwise.
+    """
+    if len(lines) != 3:
+        return False
+    prev_line, current_line, next_line = lines
+    current_line = current_line.lower().replace('i̇', 'i').strip()
+    if index_heading_pattern.search(current_line) or index_heading_pattern.search(prev_line):
+        return True
+    next_line = next_line.lower().replace('i̇', 'i').strip()
+    if index_start_pattern.search(current_line) and index_end_pattern.search(next_line):
+        return True
+    prev_line = prev_line.lower().replace('i̇', 'i').strip()
+    if index_start_pattern.search(prev_line) and index_end_pattern.search(current_line):
+        return True
+    return False
+
 def compute_line_statistics(lines):
     """
     Computes various statistics for each line in a list of lines.
@@ -226,7 +252,7 @@ def compute_line_statistics(lines):
     lines_without_numbers = [re.sub(r'(^(\d+)|(\d+)$)', '', line.strip()) for line in lines]
 
     statistics = []
-    for line in lines:
+    for i, line in enumerate(lines):
         stats = {'line': line}
         stats['is_turkish'] = is_turkish_content(line)
         stats['characters'] = count_characters(line)
@@ -248,6 +274,7 @@ def compute_line_statistics(lines):
         stats['initial_number'] = capture_number_at_beginning(line)
         stats['final_number'] = capture_number_at_end(line)
         stats['has_citation'] = capture_citations(line)
+        stats['part_of_index'] = check_index(lines[i-1:i+2])
 
         statistics.append(stats)
     return statistics
