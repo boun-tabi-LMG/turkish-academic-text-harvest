@@ -222,7 +222,7 @@ def compute_line_statistics(lines):
         list: A list of dictionaries containing the line statistics.
     """
 
-    # create a list consisting of `lines` + `lines` with numbers removed
+    # create a list consisting of `lines` with numbers removed
     lines_without_numbers = [re.sub(r'(^(\d+)|(\d+)$)', '', line.strip()) for line in lines]
 
     statistics = []
@@ -366,7 +366,7 @@ def convert_pdf_to_text(file):
     df = mark_footnotes(df)
 
     try:
-        # Bibliography is not presented in all pdfs.
+        # Bibliography is not present in all pdfs.
         df = find_bibliography(df)
     except:
         df['is_bibliography'] = False
