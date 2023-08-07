@@ -393,12 +393,15 @@ def convert_pdf_to_text(file):
 
 def main():
     arg_parser = argparse.ArgumentParser(description='Extracts text from PDF files.')
-    arg_parser.add_argument('-p', '--path', type=str, help='The path to the PDF folder.', required=True)
+    arg_parser.add_argument('-p', '--path', type=str, help='The path to the PDF folder or file.', required=True)
     arg_parser.add_argument('-n', '--num_threads', type=int, help='The number of threads to use.', default=4)
     args = arg_parser.parse_args()
 
-    input_dir = Path(args.path)
-    input_files = [str(f) for f in input_dir.iterdir() if f.name.endswith('.pdf')]
+    input_path = Path(args.path)
+    if input_path.is_file() and input_path.name.endswith('.pdf'):
+        input_files = [str(input_path)]
+    elif input_path.is_dir():
+        input_files = [str(f) for f in input_path.iterdir() if f.name.endswith('.pdf')]
 
     with Pool(args.num_threads) as pool:
         pool.map(convert_pdf_to_text, input_files)
