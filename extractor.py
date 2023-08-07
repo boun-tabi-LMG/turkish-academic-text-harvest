@@ -72,7 +72,7 @@ def check_email(line):
     email_search = email_pattern.search(line)
     return bool(email_search)
 
-def count_occurrence(lines, target_line):
+def count_occurrence(lines_without_numbers, target_line):
     """
     Counts the number of occurrences of a target line in a list of lines.
 
@@ -81,8 +81,7 @@ def count_occurrence(lines, target_line):
     """
     strip_t = target_line.strip()
     number_removed = re.sub(r'(^(\d+)|(\d+)$)', '', strip_t)
-    count = max(lines.count(target_line), lines.count(number_removed))
-    return count
+    return lines_without_numbers.count(number_removed)
 
 caption_items = ['Tablo', 'Şekil', 'Fotoğraf', 'Figür', 'Resim', 'Plan', 'Nota', 'Çizelge', 'Grafik', 'Ek']
 caption_pattern = re.compile(fr"^({'|'.join(caption_items)})\s\d+[\.\:\-]")
@@ -222,6 +221,10 @@ def compute_line_statistics(lines):
     Returns:
         list: A list of dictionaries containing the line statistics.
     """
+
+    # create a list consisting of `lines` + `lines` with numbers removed
+    lines_without_numbers = [re.sub(r'(^(\d+)|(\d+)$)', '', line.strip()) for line in lines]
+
     statistics = []
     for line in lines:
         stats = {'line': line}
@@ -237,7 +240,7 @@ def compute_line_statistics(lines):
         stats['uppercase_ratio'] = uppercase_ratio(line)
         stats['dates'] = capture_dates(line)
         stats['has_email'] = check_email(line)
-        stats['occurrence'] = count_occurrence(lines, line)
+        stats['occurrence'] = count_occurrence(lines_without_numbers, line)
         stats['caption_type'] = find_caption_type(line)
         stats['affiliation_count'] = compute_affiliation_ratio(line)
         stats['citation_format'] = check_volume_number_format(line)
