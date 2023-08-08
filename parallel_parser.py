@@ -28,11 +28,20 @@ def parse_file(file_path, output_dir):
     except Exception as e:
         logger.error(f"Error while parsing {file_path}: {e}")
 
+def parse_scanned_file(file_path, output_dir):
+    try:
+        elements = partition_pdf(str(file_path), strategy="fast")
+        df = convert_to_dataframe(elements)
+        df.to_csv(output_dir / f'{file_path.stem}.csv')
+    except Exception as e:
+        logger.error(f"Error while parsing {file_path}: {e}")
+        
 def main():
     arg_parser = ArgumentParser(description='Performs OCR on PDF files in the given path.')
     arg_parser.add_argument('-i', '--input', type=str, help='The path to the PDF folder.', required=True)
     arg_parser.add_argument('-o', '--output', type=str, help='The output folder.')
     arg_parser.add_argument('-n', '--num_threads', type=int, help='The number of threads to use.', default=4)
+    arg_parser.add_argument('-t', '--tool', choices=['tika', 'unstructured'], help='The tool to use.', default='tika')
     args = arg_parser.parse_args()
 
     input_dir = Path(args.input)
@@ -44,7 +53,8 @@ def main():
     logger.info(f"Number of threads: {args.num_threads}")
 
     with Pool(args.num_threads) as pool:
-        pool.starmap(parse_file, [(file_path, output_dir) for file_path in input_dir.iterdir()])
+        parse_fn = parse_file if args.tool == 'tika' else parse_scanned_file
+        pool.starmap(parse_fn, [(file_path, output_dir) for file_path in input_dir.iterdir()])
 
 if __name__ == "__main__":
     main()
