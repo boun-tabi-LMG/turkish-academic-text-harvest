@@ -214,7 +214,7 @@ def parse_pdf(path):
     parsed = parser.from_file(path)
     return [l.strip() for l in parsed["content"].split('\n') if l.strip() != '']
 
-index_str_l = ['tablo', 'şekil', 'grafik', 'çizelge', 'table', 'figure', 'graph', 'chart', 'plan', 'resim']
+index_str_l = ['tablo', 'şekil', 'grafik', 'çizelge', 'table', 'figure', 'graph', 'chart', 'plan', 'resim', 'figür', 'levha']
 index_heading_pattern = re.compile(r'(dizini?|listesi|^kisaltmalar)$', re.IGNORECASE)
 index_start_pattern = re.compile(r'^(' + '|'.join(index_str_l) + r')\s*\d+', re.IGNORECASE)
 
