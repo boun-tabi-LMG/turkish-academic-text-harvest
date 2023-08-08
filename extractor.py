@@ -214,10 +214,9 @@ def parse_pdf(path):
     parsed = parser.from_file(path)
     return [l.strip() for l in parsed["content"].split('\n') if l.strip() != '']
 
-index_str_l = ['tablo', 'şekil', 'grafik', 'çizelge', 'table', 'figure', 'graph', 'chart']
-index_heading_pattern = re.compile(r'dizini?$', re.IGNORECASE)
+index_str_l = ['tablo', 'şekil', 'grafik', 'çizelge', 'table', 'figure', 'graph', 'chart', 'plan', 'resim']
+index_heading_pattern = re.compile(r'(dizini?|listesi|^kisaltmalar)$', re.IGNORECASE)
 index_start_pattern = re.compile(r'^(' + '|'.join(index_str_l) + r')\s*\d+', re.IGNORECASE)
-index_end_pattern = re.compile(r'\d+$', re.IGNORECASE)
 
 def check_index(lines):
     """
@@ -233,10 +232,10 @@ def check_index(lines):
     if index_heading_pattern.search(current_line) or index_heading_pattern.search(prev_line):
         return True
     next_line = next_line.lower().replace('i̇', 'i').strip()
-    if index_start_pattern.search(current_line) and index_end_pattern.search(next_line):
+    if index_start_pattern.search(current_line):
         return True
     prev_line = prev_line.lower().replace('i̇', 'i').strip()
-    if index_start_pattern.search(prev_line) and index_end_pattern.search(current_line):
+    if index_start_pattern.search(prev_line):
         return True
     return False
 
