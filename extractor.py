@@ -162,7 +162,9 @@ def compute_affiliation_ratio(line):
 
     return len([indicator for indicator in indicators if indicator in line] + [i for i in cities if i in line]) / (len(indicators)+1)
 
-citation_pattern = re.compile('\(([A-Za-z–§¶\s\d\',:]+[\s,]\d{4}|\d+)\)', re.MULTILINE)
+inline_citation_pattern = re.compile('[\(\[]([A-Za-z–§¶\s\d\',:]+[\s,](19|20)\d{2}|\d+)[\)\]]', re.MULTILINE)
+reference_pattern = re.compile('[A-Za-zöÖçÇşŞıİğĞüÜ&–§¶\s\d\',:\.\(\)]+(19|20)\d{2}', re.MULTILINE)
+pp_pattern = re.compile('[\(\s]pp\.?\s?\d+', re.MULTILINE)
 
 def capture_citations(text):
     """
@@ -171,8 +173,7 @@ def capture_citations(text):
     Returns:
         bool: True if citations are found, False otherwise.
     """
-    references = citation_pattern.search(text)
-    return bool(references)
+    return bool(inline_citation_pattern.search(text)) or bool(reference_pattern.search(text)) or bool(pp_pattern.search(text))
 
 def discard_flags(text):
     """
