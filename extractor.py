@@ -326,7 +326,6 @@ def find_bibliography(df):
             if match:
                 matchFlag = True
                 bibliography_row_index = i
-                break
         # If no match is found, take the last row that contains a keyword
         if not matchFlag:
             bibliography_row_index = row_indices[-1]
@@ -408,8 +407,7 @@ def convert_pdf_to_text(file):
                 | (df['discard_flag'])
                 | (df['affiliation_count'] > 0.15)
                 | (df['occurrence'] > 2)
-                | (df['is_bibliography'])
-                | (df['is_footnote'])].index
+                | (df['is_bibliography'])].index
 
     df.loc[index, 'drop'] = True
     df.to_csv(file.replace('pdf', 'csv'), encoding='utf-8', index=False)
