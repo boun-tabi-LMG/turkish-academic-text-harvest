@@ -98,7 +98,7 @@ def find_caption_type(line):
         return match.group(1)
     return 'Yok'
 
-number_at_beginning_pattern = re.compile(r'^(\d+)')
+number_at_beginning_pattern = re.compile(r'^(\d+)(?!\.\d)(\.?\s)?')
 number_at_end_pattern = re.compile(r'(\d+)$')
 
 def capture_number_at_beginning(text):
