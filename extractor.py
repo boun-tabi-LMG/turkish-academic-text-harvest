@@ -4,7 +4,9 @@ from tika import parser
 from langdetect import detect
 from pathlib import Path
 from multiprocessing import Pool
+from collections import Counter
 import argparse
+import math
 
 def is_turkish_content(text):
     """
@@ -297,6 +299,97 @@ def correct_false_values(df, column_name):
 
     return df
 
+def mark_items(df, window_size=5, threshold_token_count=2, threshold_drop_ratio=0.5):
+    # Mark items based on conditions
+    df['item'] = False
+    conditions = (df['digit_ratio'] >= 0.2) & (df['average_token_length'] < 4)
+    df.loc[conditions, 'item'] = True
+    
+    # Iterate through the DataFrame
+    for i, row in df.iterrows():
+        if row['caption_type'] != 'Yok':
+            left_index = max(0, i - window_size)
+            right_index = min(i + window_size + 1, len(df))
+            
+            left_window = df.loc[left_index:i]
+            right_window = df.loc[i+1:right_index]
+            
+            left_token_count = left_window['token_count'].mean()
+            right_token_count = right_window['token_count'].mean()
+            
+            left_true_count = left_window['item'].sum()
+            right_true_count = right_window['item'].sum()
+            
+            if left_token_count <= right_token_count:
+                current_index = i - 1 
+                while current_index >= 0:
+                    temp_window = df.loc[current_index - window_size - 1:current_index-1]
+                    token_avg = temp_window['token_count'].mean()
+                    drop_count = temp_window['item'].sum()
+                    
+                    if token_avg > threshold_token_count or drop_count / window_size < threshold_drop_ratio or current_index == 0:
+                        last_index = min(temp_window[temp_window['token_count'] <= threshold_token_count].index.min(),
+                                         temp_window[temp_window['item']].index.min())
+                        if not pd.isnull(last_index):
+                            df.loc[last_index:i-1, 'item'] = True
+                            break
+                    current_index -= 1
+            else:
+                current_index = i + 1
+                while current_index < len(df):
+                    temp_window = df.loc[current_index+1:i+window_size+1]
+                    token_avg = temp_window['token_count'].mean()
+                    drop_count = temp_window['item'].sum()
+                    
+                    if token_avg > threshold_token_count or drop_count / window_size < threshold_drop_ratio or current_index == len(df) - 1:
+                        last_index = max(temp_window[temp_window['token_count'] <= threshold_token_count].index.max(),
+                                         temp_window[temp_window['item']].index.max())
+                        if not pd.isnull(last_index):
+                            df.loc[i+1:last_index, 'item'] = True
+                            break
+                    current_index += 1
+    return df
+
+def merge_lines(df, max_page_length=100, page_end_context=250):
+    # Create a new column to mark page breaks
+    df['page_break'] = df['line'].str.contains('[PAGE_BREAK]')
+
+    # Create a new column with stripped lines
+    df['line_stripped'] = df['line'].str.rstrip('[PAGE_BREAK]').str.strip()
+
+    # Initialize variables
+    current_page = ''
+    overall_text = ''
+
+    # Iterate through the DataFrame
+    for i, row in df.iterrows():
+        if row['line_stripped'].endswith('-'):
+            current_page += row['line_stripped'].rstrip('- ')
+        else:
+            current_page += row['line_stripped'] + ' '
+        
+        # Check for a page break
+        if row['page_break']:
+            if current_page and len(current_page) > max_page_length:
+                page_end = current_page[-page_end_context:]
+                footnote_pattern = r'[.,;!?]\s?\d+\.\s.*$'
+                cleaned_page_end = re.sub(footnote_pattern, '', page_end).strip()
+                current_page = current_page[:-page_end_context] + cleaned_page_end
+                overall_text += current_page + ' '
+            current_page = ''
+
+    overall_text += current_page + ' '
+
+    # Remove headers before abstract using word boundaries
+    keyword_pattern = r'\b(?:ÖZET|ÖZ|Öz|Özet)\b'
+    match = re.search(keyword_pattern, overall_text)
+    if match:
+        start_index = match.start()
+        return overall_text[start_index:]
+    else:
+        return overall_text
+
+
 bibliography_keywords = ['Bibliyoğrafya', 'Bibliyografya', 'Bibliyog', 'Kaynakça', 'Kaynaklar', 'Kaynaklar/References']
 bibliography_pattern = re.compile(r'^(' + '|'.join(bibliography_keywords) + r')\b', re.IGNORECASE)
 
@@ -352,8 +445,8 @@ def mark_footnotes(df):
     for i in range(len(df)):
         current_number = df['initial_number'].iloc[i]
         gap = i - last_index
-
-        if (last_number - current_number <= 2) and gap <= 4:
+        df.loc[i, 'last - current'] = last_number - current_number
+        if last_number > 0 and current_number > 0 and (current_number - last_number <= 2) and ((current_number - last_number > 0)) and gap <= 6:
             for j in range(last_index, i+1):
                 df.loc[j, 'is_footnote'] = True
 
@@ -367,6 +460,25 @@ def mark_footnotes(df):
 
     return df
 
+def replace_most_frequent_empty_lines(text):
+    # Find all sequences of consecutive empty lines
+    matches = re.findall(r"(?:\n\s*){2,}", text)
+
+    # If no matches, return the original text
+    if not matches:
+        return text
+
+    # Get the counts of consecutive empty lines
+    counts = [len(match.split('\n')) for match in matches]
+    
+    # Find the most common count
+    most_common = Counter(counts).most_common(1)[0][0]
+
+    # Replace the most common count of consecutive empty lines with the placeholder
+    pattern_to_replace = r"(?:\n\s*){%d}" % most_common
+    print('Replacing %d consecutive empty lines with the placeholder', most_common)
+    return re.sub(pattern_to_replace, ' [PAGE_BREAK]\n', text)
+
 def convert_pdf_to_text(file):
     """
     Converts a PDF file to text, performs text analysis, and saves the results to a CSV file.
@@ -378,7 +490,8 @@ def convert_pdf_to_text(file):
         file (str): The path to the PDF file.
     """
     try:
-        lines = [l.strip() for l in parser.from_file(file)['content'].split('\n') if l.strip()]
+        content = replace_most_frequent_empty_lines(parser.from_file(file)['content'])
+        lines = [l.strip() for l in content.split('\n') if l.strip()]
     except:
         print('Error during OCR:', file)
         return
@@ -390,6 +503,7 @@ def convert_pdf_to_text(file):
     df = correct_false_values(df, 'is_turkish')
 
     df = mark_footnotes(df)
+    df = mark_items(df)
 
     try:
         # Bibliography is not present in all pdfs.
@@ -400,6 +514,8 @@ def convert_pdf_to_text(file):
     index = df[(df['is_turkish_corrected'] == False)
                 | ((df['digit_ratio'] >= 0.2) & (df['average_token_length'] < 4)) # usually table values
                 | (df['digit_ratio'] == 1)                                        # page numbers
+                | (df['number_ratio'] > 1)                                        # numbers
+                | (df['item'] == True)
                 | (df['has_email'])
                 | (df['caption_type'] != 'Yok')
                 | (df['is_footnote'])
@@ -410,11 +526,15 @@ def convert_pdf_to_text(file):
                 | (df['is_bibliography'])].index
 
     df.loc[index, 'drop'] = True
+
+    df = correct_false_values(df, 'drop')
+
     df.to_csv(file.replace('pdf', 'csv'), encoding='utf-8', index=False)
 
     filtered_df = df.drop(index)
     with open(file.replace('pdf', 'txt'), 'w', encoding='utf-8') as f:
-        f.write(' '.join(filtered_df['line'].tolist()))
+        #f.write(' '.join(filtered_df['line'].tolist()))
+        f.write(merge_lines(filtered_df))
 
 def main():
     arg_parser = argparse.ArgumentParser(description='Extracts text from PDF files.')
