@@ -350,10 +350,9 @@ def mark_items(df, window_size=5, threshold_token_count=2, threshold_drop_ratio=
                     current_index += 1
     return df
 
-def merge_lines(df, max_page_length=100, page_end_context=250):
+def merge_lines(df, min_page_length=50, page_end_context=250):
     # Create a new column to mark page breaks
-    df['page_break'] = df['line'].str.contains('[PAGE_BREAK]')
-
+    df['page_break'] = df['line'].apply(lambda s: '[PAGE_BREAK]' in s)
     # Create a new column with stripped lines
     df['line_stripped'] = df['line'].str.rstrip('[PAGE_BREAK]').str.strip()
 
@@ -367,10 +366,9 @@ def merge_lines(df, max_page_length=100, page_end_context=250):
             current_page += row['line_stripped'].rstrip('- ')
         else:
             current_page += row['line_stripped'] + ' '
-        
         # Check for a page break
         if row['page_break']:
-            if current_page and len(current_page) > max_page_length:
+            if current_page and len(current_page) > min_page_length:
                 page_end = current_page[-page_end_context:]
                 footnote_pattern = r'[.,;!?]\s?\d+\.\s.*$'
                 cleaned_page_end = re.sub(footnote_pattern, '', page_end).strip()
@@ -379,7 +377,6 @@ def merge_lines(df, max_page_length=100, page_end_context=250):
             current_page = ''
 
     overall_text += current_page + ' '
-
     # Remove headers before abstract using word boundaries
     keyword_pattern = r'\b(?:ÖZET|ÖZ|Öz|Özet)\b'
     match = re.search(keyword_pattern, overall_text)
@@ -532,9 +529,14 @@ def convert_pdf_to_text(file):
     df.to_csv(file.replace('pdf', 'csv'), encoding='utf-8', index=False)
 
     filtered_df = df.drop(index)
+    filtered_content = merge_lines(filtered_df)
+
     with open(file.replace('pdf', 'txt'), 'w', encoding='utf-8') as f:
-        #f.write(' '.join(filtered_df['line'].tolist()))
-        f.write(merge_lines(filtered_df))
+        f.write(filtered_content)
+
+    with open(file.replace('pdf','_no_inline_citations.txt'), 'w', encoding='utf-8') as f:
+        no_inline_content = re.sub(r'[\(\[]([A-Za-z–§¶\s\d\',:]+[\s,](19|20)\d{2}|\d+)[\)\]]', '', filtered_content)
+        f.write(no_inline_content)
 
 def main():
     arg_parser = argparse.ArgumentParser(description='Extracts text from PDF files.')
