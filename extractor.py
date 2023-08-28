@@ -5,6 +5,7 @@ from langdetect import detect
 from pathlib import Path
 from multiprocessing import Pool
 from collections import Counter
+from thesis_preprocessor import process_thesis_text
 import argparse
 import math
 
@@ -184,7 +185,7 @@ def discard_flags(text):
     Returns:
         bool: True if citations are found, False otherwise.
     """
-    tokens = ['ORCID', 'DOI']
+    tokens = ['ORCID', 'DOI', '.....']
     if any(token in text for token in tokens):
         return True
     return False
@@ -476,7 +477,7 @@ def replace_most_frequent_empty_lines(text):
     print('Replacing %d consecutive empty lines with the placeholder', most_common)
     return re.sub(pattern_to_replace, ' [PAGE_BREAK]\n', text)
 
-def convert_pdf_to_text(file):
+def convert_pdf_to_text(file, is_thesis):
     """
     Converts a PDF file to text, performs text analysis, and saves the results to a CSV file.
 
@@ -487,7 +488,10 @@ def convert_pdf_to_text(file):
         file (str): The path to the PDF file.
     """
     try:
-        content = replace_most_frequent_empty_lines(parser.from_file(file)['content'])
+        if is_thesis: 
+            content = process_thesis_text(parser.from_file(file)['content'])
+        else: 
+            content = replace_most_frequent_empty_lines(parser.from_file(file)['content'])
         lines = [l.strip() for l in content.split('\n') if l.strip()]
     except:
         print('Error during OCR:', file)
@@ -542,6 +546,7 @@ def main():
     arg_parser = argparse.ArgumentParser(description='Extracts text from PDF files.')
     arg_parser.add_argument('-p', '--path', type=str, help='The path to the PDF folder or file.', required=True)
     arg_parser.add_argument('-n', '--num_threads', type=int, help='The number of threads to use.', default=4)
+    arg_parser.add_argument('-t', '--thesis_preprocessing',  action='store_false', help='Disable thesis preprocessing during conversion.')
     args = arg_parser.parse_args()
 
     input_path = Path(args.path)
@@ -549,9 +554,12 @@ def main():
         input_files = [str(input_path)]
     elif input_path.is_dir():
         input_files = [str(f) for f in input_path.iterdir() if f.name.endswith('.pdf')]
-
+        
+    def wrapper_convert(input_file):
+        return convert_pdf_to_text(input_file, args.thesis_preprocessing)
+        
     with Pool(args.num_threads) as pool:
-        pool.map(convert_pdf_to_text, input_files)
+        pool.map(wrapper_convert, input_files)
 
 if __name__ == '__main__':
     main()
