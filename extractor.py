@@ -3,7 +3,7 @@ import pandas as pd
 from tika import parser
 from langdetect import detect
 from pathlib import Path
-from multiprocessing import Pool
+from multiprocessing import Pool, context
 from collections import Counter
 from thesis_preprocessor import process_thesis_text
 import argparse
@@ -565,6 +565,7 @@ def main():
     arg_parser = argparse.ArgumentParser(description='Extracts text from PDF files.')
     arg_parser.add_argument('-p', '--path', type=str, help='The path to the PDF folder or file.', required=True)
     arg_parser.add_argument('-n', '--num_threads', type=int, help='The number of threads to use.', default=4)
+    arg_parser.add_argument('-l', '--time_limit', type=int, help='The time limit for each conversion in seconds.', default=30)
     arg_parser.add_argument('-t', '--thesis_preprocessing',  action='store_true', help='Enable thesis preprocessing during conversion.')
     args = arg_parser.parse_args()
 
@@ -577,7 +578,12 @@ def main():
     input_tuples = [(input_file, args.thesis_preprocessing) for input_file in input_files]
 
     with Pool(args.num_threads) as pool:
-        pool.map(wrapper_convert, input_tuples)
+        results = [pool.apply_async(wrapper_convert, (input_tuple,)) for input_tuple in input_tuples]
+        for r, input_file in zip(results, input_files):
+            try:
+                r.get(timeout=args.time_limit)  
+            except context.TimeoutError:
+                print(f"Conversion timed out for file: {input_file}")
 
 if __name__ == '__main__':
     main()
