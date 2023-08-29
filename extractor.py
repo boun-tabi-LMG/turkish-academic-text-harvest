@@ -8,6 +8,7 @@ from collections import Counter
 from thesis_preprocessor import process_thesis_text
 import argparse
 import math
+import os
 
 def is_turkish_content(text):
     """
@@ -487,15 +488,18 @@ def convert_pdf_to_text(file, is_thesis):
     Args:
         file (str): The path to the PDF file.
     """
-    try:
-        if is_thesis: 
-            content = process_thesis_text(parser.from_file(file)['content'])
-        else: 
-            content = replace_most_frequent_empty_lines(parser.from_file(file)['content'])
-        lines = [l.strip() for l in content.split('\n') if l.strip()]
-    except:
-        print('Error during OCR:', file)
-        return
+    if file.endswith('.pdf'):
+        try:
+            if is_thesis: 
+                content = process_thesis_text(parser.from_file(file)['content'])
+            else: 
+                content = replace_most_frequent_empty_lines(parser.from_file(file)['content'])
+        except:
+            print('Error during OCR:', file)
+            return
+    elif file.endswith('.txt'):
+        content = replace_most_frequent_empty_lines(open(file, encoding='utf-8').read())
+    lines = [l.strip() for l in content.split('\n') if l.strip()]
     df = pd.DataFrame(compute_line_statistics(lines))
     df['final_number'] = df['final_number'].fillna(-1)
 
@@ -530,15 +534,25 @@ def convert_pdf_to_text(file, is_thesis):
 
     df = correct_false_values(df, 'drop')
 
-    df.to_csv(file.replace('pdf', 'csv'), encoding='utf-8', index=False)
+    #df.to_csv(file.replace('pdf', 'csv'), encoding='utf-8', index=False)
 
     filtered_df = df.drop(index)
     filtered_content = merge_lines(filtered_df)
 
-    with open(file.replace('pdf', 'txt'), 'w', encoding='utf-8') as f:
-        f.write(filtered_content)
+    """with open(file.replace('pdf', 'txt'), 'w', encoding='utf-8') as f:
+        f.write(filtered_content)"""
 
-    with open(file.replace('pdf','_no_inline_citations.txt'), 'w', encoding='utf-8') as f:
+    no_inline_folder = "/".join(file.split("/")[:-2]) + "/no_inline_txt/"
+    if not os.path.exists(no_inline_folder):
+        os.makedirs(no_inline_folder)
+
+    no_inline_filename = no_inline_folder + file.split("/")[-1]
+    if file.endswith('pdf'):
+        no_inline_filename = no_inline_filename.replace('.pdf','_no_inline_citations.txt')
+    elif file.endswith('txt'):
+        no_inline_filename = no_inline_filename.replace('.txt','_no_inline_citations.txt')
+
+    with open(no_inline_filename, 'w', encoding='utf-8') as f:
         no_inline_content = re.sub(r'[\(\[]([A-Za-z–§¶\s\d\',:]+[\s,](19|20)\d{2}|\d+)[\)\]]', '', filtered_content)
         f.write(no_inline_content)
 
@@ -554,10 +568,10 @@ def main():
     args = arg_parser.parse_args()
 
     input_path = Path(args.path)
-    if input_path.is_file() and input_path.name.endswith('.pdf'):
+    if input_path.is_file() and (input_path.name.endswith('.pdf') or input_path.name.endswith('.txt')):
         input_files = [str(input_path)]
     elif input_path.is_dir():
-        input_files = [str(f) for f in input_path.iterdir() if f.name.endswith('.pdf')]
+        input_files = [str(f) for f in input_path.iterdir() if (f.name.endswith('.pdf') or f.name.endswith('.txt'))]
         
     input_tuples = [(input_file, args.thesis_preprocessing) for input_file in input_files]
 
