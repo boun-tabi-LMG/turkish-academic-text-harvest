@@ -1,5 +1,5 @@
 beautifulsoup4
-langdetect
+langid
 numpy
 pandas
 tika
