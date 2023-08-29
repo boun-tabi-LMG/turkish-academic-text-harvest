@@ -542,11 +542,15 @@ def convert_pdf_to_text(file, is_thesis):
         no_inline_content = re.sub(r'[\(\[]([A-Za-z–§¶\s\d\',:]+[\s,](19|20)\d{2}|\d+)[\)\]]', '', filtered_content)
         f.write(no_inline_content)
 
+def wrapper_convert(args_tuple):
+    input_file, thesis_preprocessing = args_tuple
+    return convert_pdf_to_text(input_file, thesis_preprocessing)
+    
 def main():
     arg_parser = argparse.ArgumentParser(description='Extracts text from PDF files.')
     arg_parser.add_argument('-p', '--path', type=str, help='The path to the PDF folder or file.', required=True)
     arg_parser.add_argument('-n', '--num_threads', type=int, help='The number of threads to use.', default=4)
-    arg_parser.add_argument('-t', '--thesis_preprocessing',  action='store_false', help='Disable thesis preprocessing during conversion.')
+    arg_parser.add_argument('-t', '--thesis_preprocessing',  action='store_true', help='Enable thesis preprocessing during conversion.')
     args = arg_parser.parse_args()
 
     input_path = Path(args.path)
@@ -555,11 +559,10 @@ def main():
     elif input_path.is_dir():
         input_files = [str(f) for f in input_path.iterdir() if f.name.endswith('.pdf')]
         
-    def wrapper_convert(input_file):
-        return convert_pdf_to_text(input_file, args.thesis_preprocessing)
-        
+    input_tuples = [(input_file, args.thesis_preprocessing) for input_file in input_files]
+
     with Pool(args.num_threads) as pool:
-        pool.map(wrapper_convert, input_files)
+        pool.map(wrapper_convert, input_tuples)
 
 if __name__ == '__main__':
     main()
