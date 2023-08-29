@@ -542,11 +542,12 @@ def convert_pdf_to_text(file, is_thesis):
     """with open(file.replace('pdf', 'txt'), 'w', encoding='utf-8') as f:
         f.write(filtered_content)"""
 
-    no_inline_folder = "/".join(file.split("/")[:-2]) + "/no_inline_txt/"
-    if not os.path.exists(no_inline_folder):
-        os.makedirs(no_inline_folder)
+    file_path = Path(file)
+    no_inline_folder = file_path.parent.parent / "no_inline_txt"
+    no_inline_folder.mkdir(parents=True, exist_ok=True)
 
-    no_inline_filename = no_inline_folder + file.split("/")[-1]
+    no_inline_filename = no_inline_folder / file_path.name
+    
     if file.endswith('pdf'):
         no_inline_filename = no_inline_filename.replace('.pdf','_no_inline_citations.txt')
     elif file.endswith('txt'):
