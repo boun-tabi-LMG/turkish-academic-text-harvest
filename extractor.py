@@ -1,11 +1,12 @@
 import re
 import pandas as pd
 from tika import parser
-from langdetect import detect
 from pathlib import Path
 from multiprocessing import Pool, context
 from collections import Counter
 from thesis_preprocessor import process_thesis_text
+# from langdetect import detect
+import langid
 import argparse
 import math
 import os
@@ -18,7 +19,8 @@ def is_turkish_content(text):
         bool: True if the text is in Turkish, False otherwise.
     """
     try:
-        detected_language = detect(text) # lower() yaparsak basliklara isimlere turkce diyor, yoksa onlardan kurtulabiliyoruz.
+        # detected_language = detect(text) # lower() yaparsak langdetect basliklara isimlere turkce diyor, yoksa onlardan kurtulabiliyoruz.
+        detected_language = langid.classify(text)[0]
         if detected_language == 'tr':
             return True
         else:
