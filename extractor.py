@@ -549,9 +549,9 @@ def convert_pdf_to_text(file, is_thesis):
     no_inline_filename = no_inline_folder / file_path.name
     
     if file.endswith('pdf'):
-        no_inline_filename = no_inline_filename.replace('.pdf','_no_inline_citations.txt')
+        no_inline_filename = str(no_inline_filename).replace('.pdf','_no_inline_citations.txt')
     elif file.endswith('txt'):
-        no_inline_filename = no_inline_filename.replace('.txt','_no_inline_citations.txt')
+        no_inline_filename = str(no_inline_filename).replace('.txt','_no_inline_citations.txt')
 
     with open(no_inline_filename, 'w', encoding='utf-8') as f:
         no_inline_content = re.sub(r'[\(\[]([A-Za-z–§¶\s\d\',:]+[\s,](19|20)\d{2}|\d+)[\)\]]', '', filtered_content)
