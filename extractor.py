@@ -490,6 +490,23 @@ def convert_pdf_to_text(file, is_thesis):
     Args:
         file (str): The path to the PDF file.
     """
+
+    file_path = Path(file)
+    no_inline_folder = file_path.parent.parent / "no_inline_txt"
+    no_inline_folder.mkdir(parents=True, exist_ok=True)
+
+    no_inline_filename = no_inline_folder / file_path.name
+    
+    if file.endswith('pdf'):
+        no_inline_filename = str(no_inline_filename).replace('.pdf','_no_inline_citations.txt')
+    elif file.endswith('txt'):
+        no_inline_filename = str(no_inline_filename).replace('.txt','_no_inline_citations.txt')
+
+    # If extraction is previously carried out, don't extract
+    if os.path.exists(no_inline_filename):
+        print("Skipped", file)
+        return
+
     if file.endswith('.pdf'):
         try:
             if is_thesis: 
@@ -543,17 +560,6 @@ def convert_pdf_to_text(file, is_thesis):
 
     """with open(file.replace('pdf', 'txt'), 'w', encoding='utf-8') as f:
         f.write(filtered_content)"""
-
-    file_path = Path(file)
-    no_inline_folder = file_path.parent.parent / "no_inline_txt"
-    no_inline_folder.mkdir(parents=True, exist_ok=True)
-
-    no_inline_filename = no_inline_folder / file_path.name
-    
-    if file.endswith('pdf'):
-        no_inline_filename = str(no_inline_filename).replace('.pdf','_no_inline_citations.txt')
-    elif file.endswith('txt'):
-        no_inline_filename = str(no_inline_filename).replace('.txt','_no_inline_citations.txt')
 
     with open(no_inline_filename, 'w', encoding='utf-8') as f:
         no_inline_content = re.sub(r'[\(\[]([A-Za-z–§¶\s\d\',:]+[\s,](19|20)\d{2}|\d+)[\)\]]', '', filtered_content)
