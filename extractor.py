@@ -5,6 +5,7 @@ from pathlib import Path
 from multiprocessing import Pool, context
 from collections import Counter
 from thesis_preprocessor import process_thesis_text
+from pyinstrument import Profiler
 # from langdetect import detect
 import langid
 import argparse
@@ -568,6 +569,10 @@ def convert_pdf_to_text(file, is_thesis):
 def wrapper_convert(args_tuple):
     input_file, thesis_preprocessing = args_tuple
     return convert_pdf_to_text(input_file, thesis_preprocessing)
+
+def profiler_convert(input_tuples, count): 
+    for input_tuple in input_tuples[:count]:
+        convert_pdf_to_text(*input_tuple)
     
 def main():
     arg_parser = argparse.ArgumentParser(description='Extracts text from PDF files.')
@@ -575,6 +580,7 @@ def main():
     arg_parser.add_argument('-n', '--num_threads', type=int, help='The number of threads to use.', default=4)
     arg_parser.add_argument('-l', '--time_limit', type=int, help='The time limit for each conversion in seconds.', default=30)
     arg_parser.add_argument('-t', '--thesis_preprocessing',  action='store_true', help='Enable thesis preprocessing during conversion.')
+    arg_parser.add_argument('-i', '--profiler',  type=int, help='Enable profiler to measure performance of provided no. of files.', default=0)
     args = arg_parser.parse_args()
 
     input_path = Path(args.path)
@@ -585,13 +591,19 @@ def main():
         
     input_tuples = [(input_file, args.thesis_preprocessing) for input_file in input_files]
 
-    with Pool(args.num_threads) as pool:
-        results = [pool.apply_async(wrapper_convert, (input_tuple,)) for input_tuple in input_tuples]
-        for r, input_file in zip(results, input_files):
-            try:
-                r.get(timeout=args.time_limit)  
-            except context.TimeoutError:
-                print(f"Conversion timed out for file: {input_file}")
+    if args.profiler == 0:
+        with Pool(args.num_threads) as pool:
+            results = [pool.apply_async(wrapper_convert, (input_tuple,)) for input_tuple in input_tuples]
+            for r, input_file in zip(results, input_files):
+                try:
+                    r.get(timeout=args.time_limit)  
+                except context.TimeoutError:
+                    print(f"Conversion timed out for file: {input_file}")
+    else:
+        with Profiler(interval=0.1) as profiler:
+            profiler_convert(input_tuples, args.profiler)
+        profiler.print()
+        profiler.open_in_browser()
 
 if __name__ == '__main__':
     main()
