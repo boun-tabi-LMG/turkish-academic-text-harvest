@@ -7,7 +7,7 @@ from collections import Counter
 from thesis_preprocessor import process_thesis_text
 from pyinstrument import Profiler
 # from langdetect import detect
-import langid
+# import langid
 import argparse
 import math
 import os
@@ -261,7 +261,7 @@ def compute_line_statistics(lines):
     statistics = []
     for i, line in enumerate(lines):
         stats = {'line': line}
-        stats['is_turkish'] = is_turkish_content(line)
+        #stats['is_turkish'] = is_turkish_content(line)
         stats['characters'] = count_characters(line)
         stats['tokens'] = capture_tokens(line)
         stats['numbers'] = capture_numbers(line)
@@ -524,8 +524,8 @@ def convert_pdf_to_text(file, is_thesis):
     df['final_number'] = df['final_number'].fillna(-1)
 
     # TODO: What if we perform this correction after dropping based on other conditions?
-    df['is_turkish_corrected'] = df['is_turkish']
-    df = correct_false_values(df, 'is_turkish')
+    # df['is_turkish_corrected'] = df['is_turkish']
+    # df = correct_false_values(df, 'is_turkish')
 
     df = mark_footnotes(df)
     df = mark_items(df)
@@ -536,10 +536,10 @@ def convert_pdf_to_text(file, is_thesis):
     except:
         df['is_bibliography'] = False
 
-    index = df[(df['is_turkish_corrected'] == False)
-                | ((df['digit_ratio'] >= 0.2) & (df['average_token_length'] < 4)) # usually table values
+    index = df[((df['digit_ratio'] >= 0.2) & (df['average_token_length'] < 4)) # usually table values
                 | (df['digit_ratio'] == 1)                                        # page numbers
                 | (df['number_ratio'] > 1)                                        # numbers
+                # | (df['is_turkish_corrected'] == False)
                 | (df['item'] == True)
                 | (df['has_email'])
                 | (df['caption_type'] != 'Yok')
