@@ -546,6 +546,32 @@ def convert_pdf_to_text(file, is_thesis):
         df = find_bibliography(df)
     except:
         df['is_bibliography'] = False
+    df.drop(df.loc[(df['is_bibliography'] == True)
+                   | df['has_email']
+                   | df['citation_format']
+                   | df['discard_flag']
+                   | (df['affiliation_count'] > 0.15)
+                   | (df['occurrence'] > 2)].index, inplace=True)
+    if df.shape[0] == 0:
+        logger.info('No content left after filtering.')
+        return
+    df.reset_index(drop=True, inplace=True)
+
+    df['is_turkish'] = df['line'].apply(is_turkish_content)
+    df['is_turkish_corrected'] = df['is_turkish']
+    df = correct_false_values(df, 'is_turkish')
+
+    df.drop(df.loc[df['is_turkish_corrected'] == False].index, inplace=True)
+
+    if df.shape[0] == 0:
+        return
+
+    df.reset_index(drop=True, inplace=True)
+
+    df = mark_footnotes(df)
+    
+    df = mark_items(df)
+
 
     index = df[((df['digit_ratio'] >= 0.2) & (df['average_token_length'] < 4)) # usually table values
                 | (df['digit_ratio'] == 1)                                        # page numbers
@@ -565,7 +591,9 @@ def convert_pdf_to_text(file, is_thesis):
 
     df = correct_false_values(df, 'drop')
 
-    #df.to_csv(file.replace('pdf', 'csv'), encoding='utf-8', index=False)
+    if df.shape[0] == 0:
+        logger.info('No content left after filtering.')
+        return
 
     filtered_df = df.drop(index)
     filtered_content = merge_lines(filtered_df)
