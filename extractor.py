@@ -375,21 +375,14 @@ def merge_lines(df, min_page_length=50, page_end_context=250):
         if row['page_break']:
             if current_page and len(current_page) > min_page_length:
                 page_end = current_page[-page_end_context:]
-                footnote_pattern = r'[.,;!?]\s?\d+\.\s.*$'
-                cleaned_page_end = re.sub(footnote_pattern, '', page_end).strip()
-                current_page = current_page[:-page_end_context] + cleaned_page_end
+                # footnote_pattern = r'[.,;!?]\s?\d+\.\s.*$'
+                # cleaned_page_end = re.sub(footnote_pattern, '', page_end).strip()
+                # current_page = current_page[:-page_end_context] + cleaned_page_end
                 overall_text += current_page + ' '
             current_page = ''
 
     overall_text += current_page + ' '
-    # Remove headers before abstract using word boundaries
-    keyword_pattern = r'\b(?:ÖZET|ÖZ|Öz|Özet)\b'
-    match = re.search(keyword_pattern, overall_text)
-    if match:
-        start_index = match.start()
-        return overall_text[start_index:]
-    else:
-        return overall_text
+    return overall_text
 
 
 bibliography_keywords = ['Bibliyoğrafya', 'Bibliyografya', 'Bibliyog', 'Kaynakça', 'Kaynaklar', 'Kaynaklar/References']
@@ -481,6 +474,18 @@ def replace_most_frequent_empty_lines(text):
     print('Replacing %d consecutive empty lines with the placeholder', most_common)
     return re.sub(pattern_to_replace, ' [PAGE_BREAK]\n', text)
 
+def remove_text_before_abstract(text):
+    """Removes the text before the abstract section."""
+    keyword_pattern = r'\b(?:ÖZET|ÖZ|Öz|Özet)\s*?\n'
+    match = re.search(keyword_pattern, text)
+    
+    if match and (match.group(0).strip() in ["ÖZET", "ÖZ", "Öz", "Özet"]):
+        start_index = match.start()
+        # Make sure that the abstract appears in the first half. 
+        if start_index < len(text)/2:
+            text = text[start_index:]
+    return text
+
 def convert_pdf_to_text(file, is_thesis):
     """
     Converts a PDF file to text, performs text analysis, and saves the results to a CSV file.
@@ -518,6 +523,8 @@ def convert_pdf_to_text(file, is_thesis):
         with open(file, encoding='utf-8') as f:
             content = f.read()
     content = preprocess_text(content)
+    content = remove_text_before_abstract(content)
+
     if is_thesis: 
         content = process_thesis_text(content)
     else:
