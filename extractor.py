@@ -467,8 +467,9 @@ def replace_most_frequent_empty_lines(text):
     counts = [len(match.split('\n')) for match in matches]
     
     # Find the most common count
-    most_common = Counter(counts).most_common(1)[0][0]
-
+    most_common, _ = Counter(counts).most_common(1)[0]
+    if most_common < 5:
+        return text
     # Replace the most common count of consecutive empty lines with the placeholder
     pattern_to_replace = r"(?:\n\s*){%d}" % most_common
     print('Replacing %d consecutive empty lines with the placeholder', most_common)
