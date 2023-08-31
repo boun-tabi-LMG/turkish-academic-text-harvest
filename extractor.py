@@ -401,7 +401,7 @@ def merge_lines(df, min_page_length=50, page_end_context=250):
 
 
 bibliography_keywords = ['Bibliyoğrafya', 'Bibliyografya', 'Bibliyog', 'Kaynakça', 'Kaynaklar', 'Kaynaklar/References']
-bibliography_pattern = re.compile(r'^(' + '|'.join(bibliography_keywords) + r')\b', re.IGNORECASE)
+bibliography_pattern = re.compile(r'^(\d+\.?\s*?)?(' + '|'.join(bibliography_keywords) + r')\b', re.IGNORECASE)
 
 def find_bibliography(df):
     # TODO: Handle the case where keywords are detected more than once.
@@ -413,10 +413,10 @@ def find_bibliography(df):
     """
 
     # Search for the keywords in the 'text_column'
-    mask = df['line'].str.contains(r'^(' + '|'.join(bibliography_keywords) + r')', case=False, na=False, regex=True)
-
+    mask = df['line'].str.contains(r'^(\d+\.?\s*?)?(' + '|'.join(bibliography_keywords) + r')\b', case=False, na=False, regex=True)
     # Get the index of the row(s) containing the keywords
     row_indices = df[mask].index
+
     # If only one keyword is found
     if len(row_indices) == 1:
         bibliography_row_index = row_indices[0]
