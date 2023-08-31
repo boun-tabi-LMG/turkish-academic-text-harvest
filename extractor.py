@@ -7,7 +7,7 @@ from collections import Counter
 from thesis_preprocessor import process_thesis_text
 from pyinstrument import Profiler
 # from langdetect import detect
-# import langid
+from normalize import preprocess_text
 import argparse
 import math
 import os
@@ -510,15 +510,18 @@ def convert_pdf_to_text(file, is_thesis):
 
     if file.endswith('.pdf'):
         try:
-            if is_thesis: 
-                content = process_thesis_text(parser.from_file(file)['content'])
-            else: 
-                content = replace_most_frequent_empty_lines(parser.from_file(file)['content'])
+            content = parser.from_file(file)['content']
         except:
             print('Error during OCR:', file)
             return
     elif file.endswith('.txt'):
-        content = replace_most_frequent_empty_lines(open(file, encoding='utf-8').read())
+        with open(file, encoding='utf-8') as f:
+            content = f.read()
+    content = preprocess_text(content)
+    if is_thesis: 
+        content = process_thesis_text(content)
+    else:
+        content = replace_most_frequent_empty_lines(content)
     lines = [l.strip() for l in content.split('\n') if l.strip()]
     df = pd.DataFrame(compute_line_statistics(lines))
     df['final_number'] = df['final_number'].fillna(-1)

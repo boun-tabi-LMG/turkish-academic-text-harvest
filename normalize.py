@@ -87,9 +87,10 @@ replacement_dict = {'“': '"',
  "Û": "ğ",
  "\uf0ae": "",
  "\uf001": "",
+ "ġ": "Ş",
 }
 
-def preprocess_sentence(line):
+def preprocess_text(line):
     for key, value in replacement_dict.items():
         line = line.strip().replace(key, value)
     return line

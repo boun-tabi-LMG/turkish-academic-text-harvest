@@ -1,7 +1,7 @@
 import kenlm
 import pandas as pd
 from transformers import PreTrainedTokenizerFast
-from normalize import preprocess_sentence
+from normalize import preprocess_text
 import argparse
 from pathlib import Path
 from vnlp import SentenceSplitter
@@ -32,7 +32,7 @@ def is_turkish_content(text):
 def normalize_split_score(file):
 	with open(file, encoding="utf-8") as extracted_file:
 		text = extracted_file.read()
-	text = preprocess_sentence(text)
+	text = preprocess_text(text)
 	sentences = sentence_splitter.split_sentences(text)
 	df = pd.DataFrame()
 	for i, sentence in enumerate(sentences):
