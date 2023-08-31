@@ -49,9 +49,9 @@ def replace_page_numbers_with_placeholder(text):
     pattern = r"\n(\s)?(\d+)(?!\.\d)(\.?\s)?\n"
     return re.sub(pattern, r'\n[PAGE_NUMBER]\n', text)
 
-SECTIONS_TO_DISCARD  = ['ÖZGEÇMİŞ', 'ÖNSÖZ', 'BEYAN', 'BİLDİRİM', 'TEŞEKKÜR', 'JÜRİ VE ENSTİTÜ ONAYI', 'ETİK KURUL ONAYI', 'TEZ ONAY FORMU', 
+SECTIONS_TO_DISCARD  = ['ÖZGEÇMİŞ', 'ÖNSÖZ', 'ÖN SÖZ', 'BEYAN', 'BİLDİRİM', 'TEŞEKKÜR', 'JÜRİ VE ENSTİTÜ ONAYI', 'ETİK KURUL ONAYI', 'TEZ ONAY FORMU', 
                         'TEZ KABUL VE ONAYI', 'DOĞRULUK BEYANI', 'KISALTMALAR', 'YEMİN', 'TUTANAK', 'TEZ BİLDİRİMİ',
-                        'BİLİMSEL ETİĞE UYGUNLUK', 'TEZ YAZIM KLAVUZUNA UYGUNLUK', 'İTHAF', 'EKLER', 'İÇİNDEKİ', 
+                        'BİLİMSEL ETİĞE UYGUNLUK', 'TEZ YAZIM KLAVUZUNA UYGUNLUK', 'İTHAF', 'EKLER', 'İÇİNDEKİ',  
                         #   'RESİM LİSTESİ','PLAN LİSTESİ', 'GRAFİK LİSTESİ', 'TABLO LİSTESİ', 'ŞEKİL LİSTESİ', 'FİGÜR LİSTESİ', 'ÇİZELGE LİSTESİ', 'LEVHA LİSTESİ', 'NOTA LİSTESİ',
                         #   'RESİM DİZİNİ','PLAN DİZİNİ', 'GRAFİK DİZİNİ', 'TABLO DİZİNİ', 'ŞEKİL DİZİNİ', 'FİGÜR DİZİNİ', 'ÇİZELGE DİZİNİ', 'LEVHA DİZİNİ', 'NOTA DİZİNİ',
                     ]
@@ -59,8 +59,8 @@ SECTIONS_TO_DISCARD  = ['ÖZGEÇMİŞ', 'ÖNSÖZ', 'BEYAN', 'BİLDİRİM', 'TEŞ
 PLACEHOLDER_PATTERN = r'\[PAGE_BREAK\]' # r'(\[ROMAN_PAGE_NUMBER\])|\[PAGE_NUMBER\]|\[PAGE_BREAK\])'
 
 # DISCARD_TEXT_PATTERN  = r'(' + '|'.join(SECTIONS_TO_DISCARD )  + r')[\s\S]*?'\[PAGE_BREAK\][\s\S]*?\[PAGE_BREAK\]|'+  
-# DISCARD_TEXT_PATTERN  = r'(' + '|'.join(SECTIONS_TO_DISCARD )  + r')[\s\S]*?' + PLACEHOLDER_PATTERN +  r'[\s\S]*?' + PLACEHOLDER_PATTERN + r'|'
-DISCARD_TEXT_PATTERN  = r'(' + '|'.join(SECTIONS_TO_DISCARD )  + r')[\s\S]*?' + PLACEHOLDER_PATTERN 
+DISCARD_TEXT_PATTERN  = r'(' + '|'.join(SECTIONS_TO_DISCARD )  + r')\n+?[\s\S]*?' + PLACEHOLDER_PATTERN 
+ALTERNATIVE_DISCARD_TEXT_PATTERN  = r'(' + '|'.join(SECTIONS_TO_DISCARD)  + r')[\s\S]*?' + PLACEHOLDER_PATTERN +  r'[\s\S]*?' + PLACEHOLDER_PATTERN 
 
 
 def process_thesis_text(text):
@@ -77,5 +77,6 @@ def process_thesis_text(text):
     text = replace_page_numbers_with_placeholder(text)
     text = insert_page_breaks(text)
     text = text.replace('ROMAN_PAGE_NUMBER', 'PAGE_BREAK')
-    text = text.replace('PAGE_NUMBER', 'PAGE_BREAK')
-    return remove_text_between_patterns(text, DISCARD_TEXT_PATTERN)
+    text = text.replace('PAGE_NUMBER', 'PAGE_BREAK')   
+    text = remove_text_between_patterns(text, DISCARD_TEXT_PATTERN)
+    return text 
