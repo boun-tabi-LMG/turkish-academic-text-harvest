@@ -105,7 +105,8 @@ def count_occurrence(lines_without_numbers, target_line):
     number_removed = re.sub(r'(^(\d+)|(\d+)$)', '', strip_t)
     return lines_without_numbers.count(number_removed)
 
-caption_items = ['Tablo', 'Şekil', 'Fotoğraf', 'Figür', 'Resim', 'Plan', 'Nota', 'Çizelge', 'Grafik', 'Ek']
+caption_items = ['Tablo', 'Şekil', 'Fotoğraf', 'Figür', 'Resim', 'Plan', 'Nota', 'Çizelge', 'Grafik', 'Ek', 'Levha'
+                 'Tabloların', 'Şekillerin', 'Fotoğrafların', 'Figürlerin', 'Resimlerin', 'Planların', 'Notaların', 'Çizelgelerin', 'Grafiklerin', 'Eklerin', 'Levhaların' ]
 caption_pattern = re.compile(fr"^({'|'.join(caption_items)})\s\d+[\.\:\-]")
 
 def find_caption_type(line):
@@ -239,7 +240,7 @@ def parse_pdf(path):
 
 index_str_l = ['tablo', 'şekil', 'grafik', 'çizelge', 'table', 'figure', 'graph', 'chart', 'plan', 'resim', 'figür', 'levha']
 index_heading_pattern = re.compile(r'(dizini?|listesi|^kisaltmalar)$', re.IGNORECASE)
-index_start_pattern = re.compile(r'^(' + '|'.join(index_str_l) + r')\s*\d+', re.IGNORECASE)
+index_start_pattern = re.compile(r'^(' + '|'.join(index_str_l) + r')(.?)\s*\d+', re.IGNORECASE)
 
 def check_index(lines):
     """
@@ -389,7 +390,7 @@ def merge_lines(df, min_page_length=50, page_end_context=250):
         # Check for a page break
         if row['page_break']:
             if current_page and len(current_page) > min_page_length:
-                page_end = current_page[-page_end_context:]
+                #page_end = current_page[-page_end_context:]
                 # footnote_pattern = r'[.,;!?]\s?\d+\.\s.*$'
                 # cleaned_page_end = re.sub(footnote_pattern, '', page_end).strip()
                 # current_page = current_page[:-page_end_context] + cleaned_page_end
@@ -556,6 +557,7 @@ def convert_pdf_to_text(file, is_thesis):
         df = find_bibliography(df)
     except:
         df['is_bibliography'] = False
+
     df.drop(df.loc[(df['is_bibliography'] == True)
                    | df['has_email']
                    | df['citation_format']
@@ -605,7 +607,8 @@ def convert_pdf_to_text(file, is_thesis):
                 | (df['discard_flag'])
                 | (df['affiliation_count'] > 0.15)
                 | (df['occurrence'] > 2)
-                | (df['is_bibliography'])].index
+                | (df['is_bibliography'])
+                | (df['part_of_index'])].index
 
     df.loc[index, 'drop'] = True
 
