@@ -8,9 +8,24 @@ from thesis_preprocessor import process_thesis_text
 from pyinstrument import Profiler
 # from langdetect import detect
 from normalize import preprocess_text
+import langid
 import argparse
 import math
 import os
+import logging
+
+import warnings
+warnings.simplefilter(action='ignore', category=UserWarning)
+
+logger = logging.getLogger('__name__')
+level = logging.INFO
+logger.setLevel(level)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# handler for console info messages
+ch = logging.StreamHandler()
+ch.setFormatter(formatter)
+ch.setLevel(level)
+logger.addHandler(ch)
 
 def is_turkish_content(text):
     """
@@ -402,7 +417,6 @@ def find_bibliography(df):
 
     # Get the index of the row(s) containing the keywords
     row_indices = df[mask].index
-
     # If only one keyword is found
     if len(row_indices) == 1:
         bibliography_row_index = row_indices[0]
@@ -472,7 +486,7 @@ def replace_most_frequent_empty_lines(text):
         return text
     # Replace the most common count of consecutive empty lines with the placeholder
     pattern_to_replace = r"(?:\n\s*){%d}" % most_common
-    print('Replacing %d consecutive empty lines with the placeholder', most_common)
+    logger.info(f'Replacing {most_common} consecutive empty lines with the placeholder', )
     return re.sub(pattern_to_replace, ' [PAGE_BREAK]\n', text)
 
 def remove_text_before_abstract(text):
@@ -497,7 +511,7 @@ def convert_pdf_to_text(file, is_thesis):
     Args:
         file (str): The path to the PDF file.
     """
-
+    logger.info(f'Processing {file}')
     file_path = Path(file)
     no_inline_folder = file_path.parent.parent / "no_inline_txt"
     no_inline_folder.mkdir(parents=True, exist_ok=True)
@@ -509,40 +523,36 @@ def convert_pdf_to_text(file, is_thesis):
     elif file.endswith('txt'):
         no_inline_filename = str(no_inline_filename).replace('.txt','_no_inline_citations.txt')
 
-    # If extraction is previously carried out, don't extract
-    if os.path.exists(no_inline_filename):
-        print("Skipped", file)
-        return
-
     if file.endswith('.pdf'):
         try:
             content = parser.from_file(file)['content']
         except:
-            print('Error during OCR:', file)
+            logger.info('Error during OCR {file}')
             return
+        
     elif file.endswith('.txt'):
         with open(file, encoding='utf-8') as f:
             content = f.read()
+
+    logger.info(f'Preprocessing and removing text before abstract')
     content = preprocess_text(content)
     content = remove_text_before_abstract(content)
 
     if is_thesis: 
+        logger.info(f'Performing thesis preprocessing')
         content = process_thesis_text(content)
     else:
         content = replace_most_frequent_empty_lines(content)
+
+    logger.info('Computing line statistics')
     lines = [l.strip() for l in content.split('\n') if l.strip()]
     df = pd.DataFrame(compute_line_statistics(lines))
     df['final_number'] = df['final_number'].fillna(-1)
 
-    # TODO: What if we perform this correction after dropping based on other conditions?
-    # df['is_turkish_corrected'] = df['is_turkish']
-    # df = correct_false_values(df, 'is_turkish')
-
-    df = mark_footnotes(df)
-    df = mark_items(df)
-
+    logger.info(f'Initial number of lines {df.shape[0]}')
     try:
         # Bibliography is not present in all pdfs.
+        logger.info('Finding bibliography')
         df = find_bibliography(df)
     except:
         df['is_bibliography'] = False
@@ -552,10 +562,15 @@ def convert_pdf_to_text(file, is_thesis):
                    | df['discard_flag']
                    | (df['affiliation_count'] > 0.15)
                    | (df['occurrence'] > 2)].index, inplace=True)
+    logger.info(f'Number of lines after dropping bibliography and some other items {df.shape[0]}')
+
     if df.shape[0] == 0:
         logger.info('No content left after filtering.')
         return
+
     df.reset_index(drop=True, inplace=True)
+
+    logger.info(f'Detecting language and correcting values')
 
     df['is_turkish'] = df['line'].apply(is_turkish_content)
     df['is_turkish_corrected'] = df['is_turkish']
@@ -563,20 +578,25 @@ def convert_pdf_to_text(file, is_thesis):
 
     df.drop(df.loc[df['is_turkish_corrected'] == False].index, inplace=True)
 
-    if df.shape[0] == 0:
-        return
+    logger.info(f'Number of lines after dropping non-Turkish content {df.shape[0]}')
 
+    if df.shape[0] == 0:
+        logger.info('No content left after filtering.')
+        return
+   
     df.reset_index(drop=True, inplace=True)
 
+    logger.info(f'Marking footnotes')
     df = mark_footnotes(df)
     
+    logger.info(f'Marking table items')
     df = mark_items(df)
 
 
     index = df[((df['digit_ratio'] >= 0.2) & (df['average_token_length'] < 4)) # usually table values
                 | (df['digit_ratio'] == 1)                                        # page numbers
                 | (df['number_ratio'] > 1)                                        # numbers
-                # | (df['is_turkish_corrected'] == False)
+                | (df['is_turkish_corrected'] == False)
                 | (df['item'] == True)
                 | (df['has_email'])
                 | (df['caption_type'] != 'Yok')
@@ -596,6 +616,10 @@ def convert_pdf_to_text(file, is_thesis):
         return
 
     filtered_df = df.drop(index)
+    logger.info(f'Final number of lines {filtered_df.shape[0]}')
+
+    logger.info(f'Merging lines {filtered_df.shape[0]}')
+
     filtered_content = merge_lines(filtered_df)
 
     """with open(file.replace('pdf', 'txt'), 'w', encoding='utf-8') as f:
