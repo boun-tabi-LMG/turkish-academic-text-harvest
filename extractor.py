@@ -628,8 +628,11 @@ def convert_pdf_to_text(file, is_thesis):
         f.write(no_inline_content)
 
 def wrapper_convert(args_tuple):
-    input_file, thesis_preprocessing = args_tuple
-    return convert_pdf_to_text(input_file, thesis_preprocessing)
+    try:
+        input_file, thesis_preprocessing = args_tuple
+        return convert_pdf_to_text(input_file, thesis_preprocessing)
+    except Exception as e:
+        logger.info(f'Error during conversion of {input_file}: {e}')
 
 def profiler_convert(input_tuples, count): 
     for input_tuple in input_tuples[:count]:
@@ -659,7 +662,7 @@ def main():
                 try:
                     r.get(timeout=args.time_limit)  
                 except context.TimeoutError:
-                    print(f"Conversion timed out for file: {input_file}")
+                    logger.info(f"Conversion timed out for file: {input_file}")
     else:
         with Profiler(interval=0.1) as profiler:
             profiler_convert(input_tuples, args.profiler)
