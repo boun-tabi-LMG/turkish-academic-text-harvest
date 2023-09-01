@@ -88,7 +88,9 @@ replacement_dict = {'“': '"',
  "\uf0ae": "",
  "\uf001": "",
  "ġ": "Ş",
- "Đ": "İ"                   
+ "Đ": "İ",
+ "³": "ş",
+ "§": "ğ"                   
 }
 
 def preprocess_text(line):
