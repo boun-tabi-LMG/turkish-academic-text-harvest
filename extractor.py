@@ -371,6 +371,8 @@ def mark_items(df, window_size=5, threshold_token_count=2, threshold_drop_ratio=
                     current_index += 1
     return df
 
+citation_after_word_pattern = re.compile('[a-zA-ZöÖçÇşŞıİğĞüÜ]+[\."\']*?(\d+)', re.MULTILINE)
+
 def merge_lines(df, min_page_length=50, page_end_context=250):
     # Create a new column to mark page breaks
     df['page_break'] = df['line'].apply(lambda s: '[PAGE_BREAK]' in s)
