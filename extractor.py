@@ -378,8 +378,7 @@ def merge_lines(df, min_page_length=50, page_end_context=250):
     # Create a new column to mark page breaks
     df['page_break'] = df['line'].apply(lambda s: '[PAGE_BREAK]' in s)
     # Create a new column with stripped lines
-    df['line_stripped'] = df['line'].str.replace('[PAGE_BREAK]', '').str.strip()
-
+    df['line_stripped'] = df['line'].str.replace('\[PAGE_BREAK\]', '').str.strip()
     # Initialize variables
     current_page = ''
     overall_text = ''
@@ -542,7 +541,6 @@ def convert_pdf_to_text(file, is_thesis):
     logger.info(f'Preprocessing and removing text before abstract')
     content = preprocess_text(content)
     content = remove_text_before_abstract(content)
-
     if is_thesis: 
         logger.info(f'Performing thesis preprocessing')
         content = process_thesis_text(content)
@@ -553,7 +551,6 @@ def convert_pdf_to_text(file, is_thesis):
     lines = [l.strip() for l in content.split('\n') if l.strip()]
     df = pd.DataFrame(compute_line_statistics(lines))
     df['final_number'] = df['final_number'].fillna(-1)
-
     logger.info(f'Initial number of lines {df.shape[0]}')
     try:
         # Bibliography is not present in all pdfs.
@@ -620,12 +617,12 @@ def convert_pdf_to_text(file, is_thesis):
         return
 
     filtered_df = df.drop(index)
+
     logger.info(f'Final number of lines {filtered_df.shape[0]}')
 
     logger.info(f'Merging lines {filtered_df.shape[0]}')
 
     filtered_content = merge_lines(filtered_df)
-
     with open(no_inline_filename, 'w', encoding='utf-8') as f:
         no_inline_content = re.sub(inline_citation_pattern, '', filtered_content)
         f.write(no_inline_content)
