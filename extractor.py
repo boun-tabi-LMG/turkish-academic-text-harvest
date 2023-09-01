@@ -623,9 +623,10 @@ def convert_pdf_to_text(file, is_thesis):
     logger.info(f'Merging lines {filtered_df.shape[0]}')
 
     filtered_content = merge_lines(filtered_df)
+    no_inline_content = re.sub(inline_citation_pattern, '', filtered_content)
+    no_citation_after_word_content = re.sub(citation_after_word_pattern, '', no_inline_content)
     with open(no_inline_filename, 'w', encoding='utf-8') as f:
-        no_inline_content = re.sub(inline_citation_pattern, '', filtered_content)
-        f.write(no_inline_content)
+        f.write(no_citation_after_word_content)
 
 def wrapper_convert(args_tuple):
     try:

@@ -3,3 +3,4 @@ langid
 numpy
 pandas
 tika
+pyinstrument
