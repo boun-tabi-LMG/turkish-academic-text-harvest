@@ -372,7 +372,7 @@ def mark_items(df, window_size=5, threshold_token_count=2, threshold_drop_ratio=
                     current_index += 1
     return df
 
-citation_after_word_pattern = re.compile('[a-zA-ZöÖçÇşŞıİğĞüÜ]+[\."\']*?(\d+)', re.MULTILINE)
+citation_after_word_pattern = re.compile('([a-zA-ZöÖçÇşŞıİğĞüÜ]+[\."\']*?)\d+', re.MULTILINE)
 
 def merge_lines(df, min_page_length=50, page_end_context=250):
     # Create a new column to mark page breaks
@@ -624,7 +624,7 @@ def convert_pdf_to_text(file, is_thesis):
 
     filtered_content = merge_lines(filtered_df)
     no_inline_content = re.sub(inline_citation_pattern, '', filtered_content)
-    no_citation_after_word_content = re.sub(citation_after_word_pattern, '', no_inline_content)
+    no_citation_after_word_content = re.sub(citation_after_word_pattern, '\\1', no_inline_content)
     with open(no_inline_filename, 'w', encoding='utf-8') as f:
         f.write(no_citation_after_word_content)
 
