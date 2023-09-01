@@ -185,7 +185,7 @@ def compute_affiliation_ratio(line):
 
     return (len([indicator for indicator in indicators if indicator in line]) + (len([i for i in cities if i in line]) > 0)) / (len(indicators)+1)
 
-inline_citation_pattern = re.compile('[\(\[]([A-Za-z–§¶\s\d\',:]+[\s,](19|20)\d{2}|\d+)[\)\]]', re.MULTILINE)
+inline_citation_pattern = re.compile('[\(\[]([A-Za-zöÖçÇşŞıİğĞüÜ&–§¶\s\d\',:;\.-]+[\s,](19|20)\d{2}|\d+)((: ?|, ?s.) ?\d+(-\d+)?)?[\)\]]', re.MULTILINE)
 reference_pattern = re.compile('[A-Za-zöÖçÇşŞıİğĞüÜ&–§¶\s\d\',:\.\(\)]+(19|20)\d{2}', re.MULTILINE)
 pp_pattern = re.compile('[\(\s]pp\.?\s?\d+', re.MULTILINE)
 
