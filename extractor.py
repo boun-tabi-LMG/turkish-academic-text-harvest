@@ -184,7 +184,7 @@ def compute_affiliation_ratio(line):
 
     return (len([indicator for indicator in indicators if indicator in line]) + (len([i for i in cities if i in line]) > 0)) / (len(indicators)+1)
 
-inline_citation_pattern = re.compile('[\(\[]([A-Za-z–§¶\s\d\',:]+[\s,](19|20)\d{2}|\d+)[\)\]]', re.MULTILINE)
+inline_citation_pattern = re.compile('[\(\[](([A-Za-zöÖçÇşŞıİğĞüÜ&–§¶\s\d\',:;\.-]+[\s,])?(\d+))((: ?|, ?s.) ?\d+(-\d+)?)?[\)\]]', re.MULTILINE)
 reference_pattern = re.compile('[A-Za-zöÖçÇşŞıİğĞüÜ&–§¶\s\d\',:\.\(\)]+(19|20)\d{2}', re.MULTILINE)
 pp_pattern = re.compile('[\(\s]pp\.?\s?\d+', re.MULTILINE)
 
@@ -371,6 +371,8 @@ def mark_items(df, window_size=5, threshold_token_count=2, threshold_drop_ratio=
                             break
                     current_index += 1
     return df
+
+citation_after_word_pattern = re.compile('[a-zA-ZöÖçÇşŞıİğĞüÜ]+[\."\']*?(\d+)', re.MULTILINE)
 
 def merge_lines(df, min_page_length=50, page_end_context=250):
     # Create a new column to mark page breaks
