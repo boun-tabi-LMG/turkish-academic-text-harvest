@@ -105,8 +105,7 @@ def count_occurrence(lines_without_numbers, target_line):
     number_removed = re.sub(r'(^(\d+)|(\d+)$)', '', strip_t)
     return lines_without_numbers.count(number_removed)
 
-caption_items = ['Tablo', 'Şekil', 'Fotoğraf', 'Figür', 'Resim', 'Plan', 'Nota', 'Çizelge', 'Grafik', 'Ek', 'Levha'
-                 'Tabloların', 'Şekillerin', 'Fotoğrafların', 'Figürlerin', 'Resimlerin', 'Planların', 'Notaların', 'Çizelgelerin', 'Grafiklerin', 'Eklerin', 'Levhaların' ]
+caption_items = ['Tablo', 'Şekil', 'Fotoğraf', 'Figür', 'Resim', 'Plan', 'Nota', 'Çizelge', 'Grafik', 'Ek', 'Levha', 'Harita']
 caption_pattern = re.compile(fr"^({'|'.join(caption_items)})\s\d+[\.\:\-]")
 
 def find_caption_type(line):
@@ -238,7 +237,9 @@ def parse_pdf(path):
     parsed = parser.from_file(path)
     return [l.strip() for l in parsed["content"].split('\n') if l.strip() != '']
 
-index_str_l = ['tablo', 'şekil', 'grafik', 'çizelge', 'table', 'figure', 'graph', 'chart', 'plan', 'resim', 'figür', 'levha']
+index_str_l = ['tablo', 'şekil', 'grafik', 'çizelge', 'table', 'figure', 'graph', 'chart', 'plan', 'resim', 'figür', 'levha', 'simge', 'harita', 'fotoğraf',
+               'tablolar', 'şekiller', 'grafikler', 'çizelgeler', 'resimler', 'figürler', 'levhalar', 'planlar', 'simgeler', 'haritalar', 'fotoğraflar',
+                'tabloların', 'şekillerin', 'fotoğrafların', 'figürlerin', 'resimlerin', 'planların', 'notaların', 'çizelgelerin', 'grafiklerin', 'eklerin', 'levhaların', 'haritaların']
 index_heading_pattern = re.compile(r'(dizini?|listesi|^kisaltmalar)$', re.IGNORECASE)
 index_start_pattern = re.compile(r'^(' + '|'.join(index_str_l) + r')(.?)\s*\d+', re.IGNORECASE)
 
@@ -375,7 +376,7 @@ def merge_lines(df, min_page_length=50, page_end_context=250):
     # Create a new column to mark page breaks
     df['page_break'] = df['line'].apply(lambda s: '[PAGE_BREAK]' in s)
     # Create a new column with stripped lines
-    df['line_stripped'] = df['line'].str.rstrip('[PAGE_BREAK]').str.strip()
+    df['line_stripped'] = df['line'].str.replace('[PAGE_BREAK]', '').str.strip()
 
     # Initialize variables
     current_page = ''
@@ -401,7 +402,8 @@ def merge_lines(df, min_page_length=50, page_end_context=250):
     return overall_text
 
 
-bibliography_keywords = ['Bibliyoğrafya', 'Bibliyografya', 'Bibliyog', 'Kaynakça', 'Kaynaklar', 'Kaynaklar/References']
+bibliography_keywords = ['Bibliyoğrafya', 'Bibliyografya', 'Bibliyog', 'Kaynakça', 'Kaynaklar', 'Kaynaklar/References', 'Yararlanılan Kaynaklar']
+bibliography_keywords += [' '.join(keyword) for keyword in bibliography_keywords] # Add the keywords with spaces: 'K A Y N A K L A R'
 bibliography_pattern = re.compile(r'^(\d+\.?\s*?)?(' + '|'.join(bibliography_keywords) + r')\b', re.IGNORECASE)
 
 def find_bibliography(df):
@@ -579,7 +581,6 @@ def convert_pdf_to_text(file, is_thesis):
     df = correct_false_values(df, 'is_turkish')
 
     df.drop(df.loc[df['is_turkish_corrected'] == False].index, inplace=True)
-
     logger.info(f'Number of lines after dropping non-Turkish content {df.shape[0]}')
 
     if df.shape[0] == 0:
@@ -590,10 +591,8 @@ def convert_pdf_to_text(file, is_thesis):
 
     logger.info(f'Marking footnotes')
     df = mark_footnotes(df)
-    
     logger.info(f'Marking table items')
     df = mark_items(df)
-
 
     index = df[((df['digit_ratio'] >= 0.2) & (df['average_token_length'] < 4)) # usually table values
                 | (df['digit_ratio'] == 1)                                        # page numbers
