@@ -93,6 +93,31 @@ def check_email(line):
     """
     email_search = email_pattern.search(line)
     return bool(email_search)
+    
+# Two or three names in the format: "Gözde Serap Gökmen" or "Gözde Serap"
+name_pattern_1 = re.compile(r"([A-ZÖÇŞİĞÜ][a-zöçşığü]*)([\s-]([A-ZÖÇŞİĞÜ][a-zöçşığü]*)){1,2}")
+# Two or three names in the format: "Gözde SERAP Gökmen" or "Gözde SERAP"
+name_pattern_2 = re.compile(r"([A-ZÖÇŞİĞÜ][a-zöçşığü]*)[\s-]([A-ZÖÇŞİĞÜ]*)([\s-][A-ZÖÇŞİĞÜ][a-zöçşığü]*)?")
+# Two or three names in the format: "GÜNEY, Kerem. " or "GÜNEY, Kerem Ali. "
+name_pattern_3 = re.compile(r"([A-ZÖÇŞİĞÜ]*),([\s-][A-ZÖÇŞİĞÜ][a-zöçşığü]*){1,2}.")
+
+def check_name(line):
+    """
+    Checks if a line of text contains a name. Looks for exact match, not partial matches.
+    Works only for lines that contain two or three tokens. 
+
+    Returns:
+        bool: True if a name comprises the line, False otherwise.
+    """
+
+    if len(line.strip().split(" ")) in [2, 3]:
+        name_search_1 = name_pattern_1.fullmatch(line)
+        name_search_2 = name_pattern_2.fullmatch(line)
+        name_search_3 = name_pattern_3.fullmatch(line)
+        name_search = bool(name_search_1 or name_search_2 or name_search_3)
+        return name_search
+    else:
+        return False
 
 def count_occurrence(lines_without_numbers, target_line):
     """
@@ -298,6 +323,7 @@ def compute_line_statistics(lines):
         stats['uppercase_ratio'] = uppercase_ratio(line)
         stats['dates'] = capture_dates(line)
         stats['has_email'] = check_email(line)
+        stats['has_name'] = check_name(line)
         stats['occurrence'] = count_occurrence(lines_without_numbers, line)
         stats['caption_type'] = find_caption_type(line)
         stats['affiliation_count'] = compute_affiliation_ratio(line)
@@ -569,6 +595,7 @@ def convert_pdf_to_text(file, is_thesis):
 
     df.drop(df.loc[(df['is_bibliography'] == True)
                    | df['has_email']
+                   | df['has_name']
                    | df['citation_format']
                    | df['discard_flag']
                    | (df['affiliation_count'] > 0.09)
@@ -598,7 +625,7 @@ def convert_pdf_to_text(file, is_thesis):
 
     logger.info(f'Marking footnotes')
     df = mark_footnotes(df)
-    logger.info(f'Marking table items')
+    logger.info(f'Marking table items for {len(df)} lines')
     df = mark_items(df)
 
     index = df[((df['digit_ratio'] >= 0.2) & (df['average_token_length'] < 4)) # usually table values
@@ -611,7 +638,7 @@ def convert_pdf_to_text(file, is_thesis):
                 | (df['is_footnote'])
                 | (df['citation_format'])
                 | (df['discard_flag'])
-                | (df['affiliation_count'] > 0.15)
+                | (df['affiliation_count'] > 0.09)
                 | (df['occurrence'] > 2)
                 | (df['is_bibliography'])
                 | (df['part_of_index'])].index
