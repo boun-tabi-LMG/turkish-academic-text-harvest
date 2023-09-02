@@ -179,10 +179,18 @@ def compute_affiliation_ratio(line):
     Returns:
         float: The affiliation count ratio.
     """
-    indicators = ['Prof', 'Doç', 'Yrd', 'Arş', 'Dr', 'Öğr', 'Gör', 'Üniversite', 'Fakülte', 'MYO', 'Assoc', 'Assc', 'Asst', 'Danışman', 'Anabilim']
+    indicators = ['Prof', 'Doç', 'Yrd', 'Arş', 'Dr', 'Öğr', 'Gör', 'Üniversite', 'Enstitü', 'Fakülte', 'MYO', 'Assoc', 'Assc', 'Asst', 'Danışman', 'Anabilim', 'Anabilim Dalı', "Sayfa:", "Yüksek Lisans Tezi", "Doktora Tezi", "Yıl:"]
+    # Manually created upper_indicators due to Anabilim.upper() --> ANABILIM, not ANABİLİM
+    upper_indicators = ['PROF', 'DOÇ', 'YRD', 'ARŞ', 'DR', 'ÖĞR', 'GÖR', 'ÜNİVERSİTE', 'ENSTİTÜ', 'FAKÜLTE', 'MYO', 'ASSOC', 'ASSC', 'ASST', 'DANIŞMAN', 'ANABİLİM', 'ANABİLİM DALI', 'SAYFA:', 'YÜKSEK LİSANS TEZİ', 'DOKTORA TEZİ', 'YIL:']
     cities = [ "Adalar", "Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Akçaabat", "Akçakale", "Akdeniz", "Akhisar", "Aksaray", "Alanya", "Alaşehir", "Altındağ", "Amasya", "Ankara", "Antalya", "Ardahan", "Arnavutköy", "Artvin", "Avcılar", "Aydın", "Bağcılar", "Bağlar", "Balıkesir", "Bandırma", "Bartın", "Batman", "Battalgazi", "Bayburt", "Bergama", "Beykoz", "Beylikdüzü", "Bilecik", "Bingöl", "Bitlis", "Bodrum", "Bolu", "Bornova", "Buca", "Burç", "Burdur", "Bursa", "Büyükçekmece", "Çağlayan", "Çanakkale", "Çankaya", "Çankırı", "Çarşamba", "Çayırova", "Çekme", "Çerkezköy", "Ceyhan", "Cizre", "Çorlu", "Çorum", "Darıca", "Değirmendere", "Denizli", "Diyarbakır", "Doğubayazıt", "Düzce", "Edirne", "Edremit", "Elazığ", "Elbistan", "Ereğli", "Erenler", "Ergani", "Erzincan", "Erzurum", "Esenler", "Esenyurt", "Eskişehir", "Etimesgut", "Fatsa", "Fethiye", "Gaziantep", "Gaziemir", "Gebze", "Giresun", "Gölcük", "Gümüşhane", "Güngören", "Hadımköy", "Hakkari", "Hatay", "Iğdır", "İnegöl", "İskenderun", "Isparta", "İstanbul", "Istanbul", "Izmir", "Kadirli", "Kağıthane", "Kahramanmaraş", "Kahta", "Kapaklı", "Karadeniz", "Karabük", "Karaköprü", "Karaman", "Karatepe", "Kars", "Karşıyaka", "Kartal", "Kastamonu", "Kayapınar", "Kayseri", "Kazanlı", "Kazımpaşa", "Keçiören", "Kemalpaşa", "Kemerburgaz", "Kilis", "Kırıkkale", "Kırklareli", "Kırşehir", "Kızıltepe", "Kocaeli", "Konak", "Konya", "Körfez", "Kozan", "Küçükçekmece", "Kuşadası", "Kütahya", "Lüleburgaz", "Mahmut Şevket Paşa", "Mahmutbey", "Malatya", "Mamak", "Manavgat", "Manisa", "Mardin", "Marmara", "Melikgazi", "Menemen", "Meram", "Mersin", "Midyat", "Muğla", "Muş", "Nazilli", "Nevşehir", "Niğde", "Nizip", "Nusaybin", "Ödemiş", "Ordu", "Osmaniye", "Pamukkale", "Patnos", "Pendik", "Polatlı", "Pursaklar", "Rize", "Sakarya", "Salihli", "Samandağ", "Samandıra", "Samsun", "Şanlıurfa", "Sarıyer", "Selçuklu", "Serdivan", "Serik", "Seyhan", "Siirt", "Silifke", "Silivri", "Silopi", "Sincan", "Sinop", "Şırnak", "Sivas", "Siverek", "Söke", "Soma", "Sultanbeyli", "Suruç", "Talas", "Tarsus", "Tavşanlı", "Tekirdağ", "Trakya", "Tokat", "Torbalı", "Trabzon", "Tunceli", "Turgutlu", "Tuzla", "Ünye", "Uşak", "Van", "Viranşehir", "Yalova", "Yenice", "Yenimahalle", "Yenişehir", "Yeşilyurt", "Yolboyu", "Yozgat", "Yüksekova", "Yüreğir", "Zonguldak"]
 
-    return (len([indicator for indicator in indicators if indicator in line]) + (len([i for i in cities if i in line]) > 0)) / (len(indicators)+1)
+    no_indicators = len([indicator for indicator in indicators if indicator in line])
+    no_upper_indicators = len([indicator for indicator in upper_indicators if indicator in line])
+    no_cities = len([i for i in cities if i in line])
+
+    affiliation_ratio = (no_indicators + no_upper_indicators + (no_cities > 0)) / (len(indicators)+1)
+
+    return affiliation_ratio
 
 inline_citation_pattern = re.compile('[\(\[](([A-Za-zöÖçÇşŞıİğĞüÜ&–§¶\s\d\',:;\.-]+[\s,])?[\d\.]*)((: ?|, ?s.) ?\d+(-\d+)?)?[\)\]]', re.MULTILINE)
 reference_pattern = re.compile('[A-Za-zöÖçÇşŞıİğĞüÜ&–§¶\s\d\',:\.\(\)]+(19|20)\d{2}', re.MULTILINE)
@@ -563,7 +571,7 @@ def convert_pdf_to_text(file, is_thesis):
                    | df['has_email']
                    | df['citation_format']
                    | df['discard_flag']
-                   | (df['affiliation_count'] > 0.15)
+                   | (df['affiliation_count'] > 0.09)
                    | (df['occurrence'] > 2)].index, inplace=True)
     logger.info(f'Number of lines after dropping bibliography and some other items {df.shape[0]}')
 
