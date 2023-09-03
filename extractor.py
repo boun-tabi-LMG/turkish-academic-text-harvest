@@ -360,6 +360,11 @@ def mark_items(df, window_size=5, threshold_token_count=2, threshold_drop_ratio=
     df['item'] = False
     conditions = (df['digit_ratio'] >= 0.2) & (df['average_token_length'] < 4)
     df.loc[conditions, 'item'] = True
+
+    no_items_to_mark = sum( df['caption_type'] != 'Yok' )
+    if no_items_to_mark > 25:
+        logger.info(f'Skipping marking {no_items_to_mark} items...')
+        return df
     
     # Iterate through the DataFrame
     for i, row in df.iterrows():
