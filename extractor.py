@@ -577,6 +577,11 @@ def convert_pdf_to_text(file, is_thesis):
         with open(file, encoding='utf-8') as f:
             content = f.read()
 
+    if content.strip() == '': 
+        logger.info('Empty file')
+        return 
+
+        
     logger.info(f'Preprocessing and removing text before abstract')
     content = preprocess_text(content)
     content = remove_text_before_abstract(content)
