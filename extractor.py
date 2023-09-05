@@ -17,7 +17,7 @@ import logging
 import warnings
 warnings.simplefilter(action='ignore', category=UserWarning)
 
-logger = logging.getLogger('__name__')
+logger = logging.getLogger(__name__)
 level = logging.INFO
 logger.setLevel(level)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -32,6 +32,7 @@ fh = logging.FileHandler('log.txt')
 fh.setFormatter(formatter)
 fh.setLevel(level)
 logger.addHandler(fh)
+
 def is_turkish_content(text):
     """
     Determines if the given text is in Turkish.
@@ -549,7 +550,7 @@ def remove_text_before_abstract(text):
             text = text[start_index:]
     return text
 
-def convert_pdf_to_text(file, is_thesis):
+def convert_pdf_to_text(file, is_thesis, output_dir):
     """
     Converts a PDF file to text, performs text analysis, and saves the results to a CSV file.
 
@@ -561,7 +562,7 @@ def convert_pdf_to_text(file, is_thesis):
     """
     logger.info(f'Processing {file}')
     file_path = Path(file)
-    no_inline_folder = file_path.parent.parent / "no_inline_txt"
+    no_inline_folder = Path(output_dir)
     no_inline_folder.mkdir(parents=True, exist_ok=True)
 
     no_inline_filename = no_inline_folder / file_path.name
@@ -680,8 +681,8 @@ def convert_pdf_to_text(file, is_thesis):
 
 def wrapper_convert(args_tuple):
     try:
-        input_file, thesis_preprocessing = args_tuple
-        return convert_pdf_to_text(input_file, thesis_preprocessing)
+        input_file, thesis_preprocessing, output_dir = args_tuple
+        return convert_pdf_to_text(input_file, thesis_preprocessing, output_dir)
     except Exception as e:
         logger.info(f'Error during conversion of {input_file}: {e}')
 
@@ -692,6 +693,7 @@ def profiler_convert(input_tuples, count):
 def main():
     arg_parser = argparse.ArgumentParser(description='Extracts text from PDF files.')
     arg_parser.add_argument('-p', '--path', type=str, help='The path to the PDF folder or file.', required=True)
+    arg_parser.add_argument('-o', '--output', type=str, help='The path to the output directory.', required=True)
     arg_parser.add_argument('-n', '--num_threads', type=int, help='The number of threads to use.', default=4)
     arg_parser.add_argument('-l', '--time_limit', type=int, help='The time limit for each conversion in seconds.', default=30)
     arg_parser.add_argument('-t', '--thesis_preprocessing',  action='store_true', help='Enable thesis preprocessing during conversion.')
@@ -700,11 +702,13 @@ def main():
 
     input_path = Path(args.path)
     if input_path.is_file() and (input_path.name.endswith('.pdf') or input_path.name.endswith('.txt')):
-        input_files = [str(input_path)]
+        input_files = [input_path]
     elif input_path.is_dir():
-        input_files = [str(f) for f in input_path.iterdir() if (f.name.endswith('.pdf') or f.name.endswith('.txt'))]
+        input_files = [f for f in input_path.iterdir() if (f.name.endswith('.pdf') or f.name.endswith('.txt'))]
         
-    input_tuples = [(input_file, args.thesis_preprocessing) for input_file in input_files]
+    output_files = [f.name.replace('_no_inline_citations.txt', '') for f in Path(args.output).iterdir()]
+    input_files = [input_file for input_file in input_files if input_file.name.replace('.txt', '') not in output_files]
+    input_tuples = [(str(input_file), args.thesis_preprocessing, args.output) for input_file in input_files]
 
     if args.profiler == 0:
         with Pool(args.num_threads) as pool:
