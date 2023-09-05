@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 level = logging.INFO
 logger.setLevel(level)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
 # handler for console info messages
 ch = logging.StreamHandler()
 ch.setFormatter(formatter)
@@ -550,7 +551,7 @@ def remove_text_before_abstract(text):
             text = text[start_index:]
     return text
 
-def convert_pdf_to_text(file, is_thesis, output_dir):
+def convert_pdf_to_text(file, is_thesis, output_dir, detect_language=True):
     """
     Converts a PDF file to text, performs text analysis, and saves the results to a CSV file.
 
@@ -624,13 +625,13 @@ def convert_pdf_to_text(file, is_thesis, output_dir):
 
     df.reset_index(drop=True, inplace=True)
 
-    logger.info(f'Detecting language and correcting values')
+    if detect_language:
+        logger.info(f'Detecting language and correcting values')
+        df['is_turkish'] = df['line'].apply(is_turkish_content)
+        df['is_turkish_corrected'] = df['is_turkish']
+        df = correct_false_values(df, 'is_turkish')
+        df.drop(df.loc[df['is_turkish_corrected'] == False].index, inplace=True)
 
-    df['is_turkish'] = df['line'].apply(is_turkish_content)
-    df['is_turkish_corrected'] = df['is_turkish']
-    df = correct_false_values(df, 'is_turkish')
-
-    df.drop(df.loc[df['is_turkish_corrected'] == False].index, inplace=True)
     logger.info(f'Number of lines after dropping non-Turkish content {df.shape[0]}')
 
     if df.shape[0] == 0:
@@ -647,7 +648,6 @@ def convert_pdf_to_text(file, is_thesis, output_dir):
     index = df[((df['digit_ratio'] >= 0.2) & (df['average_token_length'] < 4)) # usually table values
                 | (df['digit_ratio'] == 1)                                        # page numbers
                 | (df['number_ratio'] > 1)                                        # numbers
-                | (df['is_turkish_corrected'] == False)
                 | (df['item'] == True)
                 | (df['has_email'])
                 | (df['caption_type'] != 'Yok')
@@ -697,6 +697,8 @@ def main():
     arg_parser.add_argument('-n', '--num_threads', type=int, help='The number of threads to use.', default=4)
     arg_parser.add_argument('-l', '--time_limit', type=int, help='The time limit for each conversion in seconds.', default=30)
     arg_parser.add_argument('-t', '--thesis_preprocessing',  action='store_true', help='Enable thesis preprocessing during conversion.')
+    arg_parser.add_argument('-s', '--skip',  action='store_true', help='Skip files that already exist in the output directory.')
+    arg_parser.add_argument('-d', '--detect_language',  action='store_true', help='Detect language and correct values.')
     arg_parser.add_argument('-i', '--profiler',  type=int, help='Enable profiler to measure performance of provided no. of files.', default=0)
     args = arg_parser.parse_args()
 
@@ -705,9 +707,11 @@ def main():
         input_files = [input_path]
     elif input_path.is_dir():
         input_files = [f for f in input_path.iterdir() if (f.name.endswith('.pdf') or f.name.endswith('.txt'))]
-        
-    output_files = [f.name.replace('_no_inline_citations.txt', '') for f in Path(args.output).iterdir()]
-    input_files = [input_file for input_file in input_files if input_file.name.replace('.txt', '') not in output_files]
+
+    if args.skip: 
+        output_files = [f.name.replace('_no_inline_citations.txt', '') for f in Path(args.output).iterdir()]
+        input_files = [input_file for input_file in input_files if input_file.name.replace('.txt', '') not in output_files]
+
     input_tuples = [(str(input_file), args.thesis_preprocessing, args.output) for input_file in input_files]
 
     if args.profiler == 0:
