@@ -27,6 +27,11 @@ ch.setFormatter(formatter)
 ch.setLevel(level)
 logger.addHandler(ch)
 
+# handler for file info messages
+fh = logging.FileHandler('log.txt')
+fh.setFormatter(formatter)
+fh.setLevel(level)
+logger.addHandler(fh)
 def is_turkish_content(text):
     """
     Determines if the given text is in Turkish.
