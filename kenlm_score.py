@@ -6,7 +6,7 @@ import argparse
 from pathlib import Path
 from vnlp import SentenceSplitter
 from pyinstrument import Profiler
-import langid
+#import langid
 
 tokenizer = PreTrainedTokenizerFast.from_pretrained('/media/disk/home/zeynep.yirmibesoglu/VBARTTokenizer')
 model=kenlm.Model("/media/disk/home/zeynep.yirmibesoglu/kenlm/tr_wiki_spiece_5gram.binary")
@@ -32,19 +32,21 @@ def is_turkish_content(text):
 def normalize_split_score(file):
 	with open(file, encoding="utf-8") as extracted_file:
 		text = extracted_file.read()
-	text = preprocess_text(text)
+	# text = preprocess_text(text)
 	sentences = sentence_splitter.split_sentences(text)
 	df = pd.DataFrame()
 	for i, sentence in enumerate(sentences):
-		df.loc[i, 'line'] = sentence
-		df.loc[i, 'is_turkish'] = is_turkish_content(sentence)
-		sentence = sentence.lower().strip()
-		tokens = tokenizer.tokenize(sentence)
-		tokenized_sentence = " ".join(tokens)
-		df.loc[i, 'token_count'] = len(tokens)
-		df.loc[i, 'tokenized_line'] = tokenized_sentence
-		#df.loc[i, 'perplexity'] = model.perplexity(tokenized_sentence)
-		df.loc[i, 'lm_score'] = model.score(tokenized_sentence, bos = True, eos = True)
+		if len(sentence.split(" ")) > 3:
+			lower_sentence = sentence.lower().strip()
+			tokens = tokenizer.tokenize(lower_sentence)
+			tokenized_sentence = " ".join(tokens)
+			df.loc[i, 'line'] = sentence
+			df.loc[i, 'token_count'] = len(tokens)
+			df.loc[i, 'tokenized_line'] = tokenized_sentence
+			#df.loc[i, 'perplexity'] = model.perplexity(tokenized_sentence)
+			#df.loc[i, 'is_turkish'] = is_turkish_content(sentence)
+			df.loc[i, 'lm_score'] = model.score(tokenized_sentence, bos = True, eos = True)
+			df.loc[i, 'lm_score_div'] = df.loc[i, 'lm_score'] / df.loc[i, 'token_count']
 	
 	file_path = Path(file)
 	scored_folder = file_path.parent.parent / "scored_csv"
