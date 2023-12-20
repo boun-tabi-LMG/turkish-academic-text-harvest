@@ -141,8 +141,6 @@ def fetch_pdf_files(start_id=1, end_id=798285, get_pdfs=True, get_mds=True, get_
                             f.write(download_response.content)
                             logger.info(f'{thesis_id}.pdf saved')
 
-            with open(md_path, 'w') as f:
-                json.dump(md_d, f, ensure_ascii=False, indent=4)
 
         except (requests.RequestException, IOError) as e:
             logger.error(
@@ -151,6 +149,14 @@ def fetch_pdf_files(start_id=1, end_id=798285, get_pdfs=True, get_mds=True, get_
         except Exception as e:
             logger.error(
                 f'Unexpected error occurred while fetching PDF for TezNo {thesis_id}: {str(e)}')
+
+        if thesis_id % 10000 == 0:
+            with open(md_path, 'w') as f:
+                json.dump(md_d, f, ensure_ascii=False, indent=4)
+
+
+    with open(md_path, 'w') as f:
+        json.dump(md_d, f, ensure_ascii=False, indent=4)
 
 
 # Call the function to start fetching PDF files
