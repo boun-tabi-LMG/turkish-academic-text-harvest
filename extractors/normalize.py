@@ -4,29 +4,6 @@ import json
 
 valid_chars = punctuation + ascii_lowercase + ascii_uppercase + "0123456789" + " " + "\n" + "é" + "üğişçöıÜĞİŞÇÖ"
 
-def find_invalid_chars(files):
-    invalid_dict = {}
-    example_dict = {}
-    for file in files:
-        text = open(str(file), encoding="utf-8").read()
-        for i, c in enumerate(text):
-            if c not in valid_chars:
-                if c in invalid_dict:
-                    invalid_dict[c] += 1
-                    if len(example_dict[c]) < 10 and invalid_dict[c] > 500:
-                        example_dict[c].append((str(text[i-10:i+10]), str(file)))
-                else:
-                    invalid_dict[c] = 1
-                    example_dict[c] = [(str(text[i-10:i+10]), str(file))]
-    invalid_dict = sorted(invalid_dict.items(), key=lambda x:x[1], reverse=True)
-    print(invalid_dict)
-    print(example_dict)
-    return invalid_dict, example_dict
-
-#folder = "/truba/home/zyirmibesoglu/turkish_llm/media/disk/datasets/bounllm/dergipark/no_inline_txt"
-#files = Path(folder).iterdir()
-#invalid_dict, example_dict  = find_invalid_chars(files)
-
 replacement_dict = {'“': '"',
  '’': "'",
  '”': '"',
@@ -92,6 +69,25 @@ replacement_dict = {'“': '"',
  "³": "ş",
  "§": "ğ"                   
 }
+
+def find_invalid_chars(files):
+    invalid_dict = {}
+    example_dict = {}
+    for file in files:
+        text = open(str(file), encoding="utf-8").read()
+        for i, c in enumerate(text):
+            if c not in valid_chars:
+                if c in invalid_dict:
+                    invalid_dict[c] += 1
+                    if len(example_dict[c]) < 10 and invalid_dict[c] > 500:
+                        example_dict[c].append((str(text[i-10:i+10]), str(file)))
+                else:
+                    invalid_dict[c] = 1
+                    example_dict[c] = [(str(text[i-10:i+10]), str(file))]
+    invalid_dict = sorted(invalid_dict.items(), key=lambda x:x[1], reverse=True)
+    print(invalid_dict)
+    print(example_dict)
+    return invalid_dict, example_dict
 
 def preprocess_text(line):
     for key, value in replacement_dict.items():

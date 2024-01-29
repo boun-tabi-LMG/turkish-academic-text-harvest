@@ -8,7 +8,7 @@ from vnlp import SentenceSplitter
 from pyinstrument import Profiler
 from multiprocessing import Pool
 import logging
-#import langid
+import langid
 
 logger = logging.getLogger(__name__)
 level = logging.INFO
@@ -27,8 +27,8 @@ fh.setFormatter(formatter)
 fh.setLevel(level)
 logger.addHandler(fh)
 
-tokenizer = PreTrainedTokenizerFast.from_pretrained('/media/disk/home/zeynep.yirmibesoglu/VBARTTokenizer')
-model=kenlm.Model("/media/disk/home/zeynep.yirmibesoglu/kenlm/tr_wiki_spiece_5gram.binary")
+tokenizer = PreTrainedTokenizerFast.from_pretrained('VBARTTokenizer')
+model=kenlm.Model("kenlm/tr_wiki_spiece_5gram.binary")
 sentence_splitter = SentenceSplitter()
 
 def is_turkish_content(text):
