@@ -1,4 +1,4 @@
-⚠️ Important Warning Regarding the Use of Scrapers
+## ⚠️ Important Warning Regarding the Use of Scrapers
 
 Please be advised that the scraping scripts included in this repository have the potential to make a high volume of requests to targeted websites. It is crucial to understand that excessive request rates can inadvertently resemble a Denial-of-Service (DoS) attack. Such unintended heavy traffic can cause significant issues for the website servers and may be perceived as malicious activity.
 
